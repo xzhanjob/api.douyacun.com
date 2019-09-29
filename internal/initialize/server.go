@@ -9,12 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
-	"os"
 	"sync"
 )
 
 func Server(ctx context.Context, wg *sync.WaitGroup) {
-
 	defer wg.Done()
 	var (
 		engine *gin.Engine
@@ -29,15 +27,16 @@ func Server(ctx context.Context, wg *sync.WaitGroup) {
 	logger.NewLogger(fp)
 	// 数据库
 	db.NewDB(config.Get().MysqlDSN)
+	db.NewElasticsearch(config.Get().ElasticsearchAddress)
 	defer shutdown()
 	// 启动gin
 	if config.IsRelease() {
-		logger.SetLevel(logger.InfoLevel)
+		logger.SetLevel(config.Get().RunMode)
 		gin.SetMode(gin.ReleaseMode)
 		engine = gin.New()
 		engine.Use(gin.RecoveryWithWriter(fp))
 	} else {
-		logger.SetLevel(logger.InfoLevel)
+		logger.SetLevel(config.Get().RunMode)
 		engine = gin.New()
 		engine.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 			Formatter: logger.GinLogFormatter,
@@ -59,14 +58,5 @@ func Server(ctx context.Context, wg *sync.WaitGroup) {
 	<-ctx.Done()
 	if err := server.Close(); err != nil {
 		logger.Fatalf("web server close failed: %s", err)
-	}
-}
-
-func writer() (f *os.File, err error) {
-	if config.IsRelease() {
-		logFile := "/Users/liuning/Documents/github/douyacun-go/runtime/logs/douyacun.log"
-		return os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-	} else {
-		return os.Stdout, nil
 	}
 }

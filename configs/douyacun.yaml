@@ -1,5 +1,8 @@
 mysql-dsn: root:123456@tcp(192.168.1.2:3306)/douyacun?charset=utf8&parseTime=True&loc=Local
-run-mode: release
-dameon: on
+run-mode: debug
+dameon: false
 port: :9003
-pid-file: /Users/liuning/Documents/github/douyacun-go/runtime/douyacun.pid
+pid-file: /Users/liuning/Documents/github/douyacun-go/storage/douyacun.pid
+log-file: /Users/liuning/Documents/gitlab/api.douyacun.com/storage/logs/douyacun.log
+elstaticsearch-address: [http://192.168.1.2:9200]
+image-dir: /Users/liuning/Documents/gitlab/api.douyacun.com/storage/images/

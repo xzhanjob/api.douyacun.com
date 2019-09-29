@@ -49,8 +49,17 @@ func NewLogger(out io.Writer) {
 	log = logger.Sugar()
 }
 
-func SetLevel(l Level) {
-	level = zapcore.Level(l)
+func SetLevel(l string) {
+	switch l {
+	case "debug":
+		level = zapcore.Level(DebugLevel)
+	case "info":
+		level = zapcore.Level(InfoLevel)
+	case "error":
+		level = zapcore.Level(ErrorLevel)
+	case "Fatal":
+		level = zapcore.Level(FatalLevel)
+	}
 }
 
 func Debug(args ...interface{}) {
@@ -58,7 +67,7 @@ func Debug(args ...interface{}) {
 }
 
 func Debugf(template string, args ...interface{}) {
-	log.Debugf(template, args)
+	log.Debugf(template, args...)
 }
 
 func Info(args ...interface{}) {

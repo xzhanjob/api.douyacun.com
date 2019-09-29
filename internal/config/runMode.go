@@ -6,7 +6,7 @@ const (
 	// ReleaseMode indicates gin mode is release.
 	ReleaseMode = "release"
 	// TestMode indicates gin mode is test.
-	TestMode = "test"
+	InfoMode = "info"
 )
 const (
 	debugCode = iota
@@ -18,11 +18,11 @@ var runMode = debugCode
 
 func SetRunMode(mode string) {
 	switch mode {
-	case "":
+	case DebugMode:
 		runMode = debugCode
 	case ReleaseMode:
 		runMode = releaseCode
-	case TestMode:
+	case InfoMode:
 		runMode = testCode
 	}
 }

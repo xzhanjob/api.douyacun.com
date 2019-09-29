@@ -3,6 +3,7 @@ module dyc
 go 1.12
 
 require (
+	github.com/elastic/go-elasticsearch/v8 v8.0.0-20190910075000-5963931cb201
 	github.com/gin-gonic/gin v1.4.0
 	github.com/jinzhu/gorm v1.9.10
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect

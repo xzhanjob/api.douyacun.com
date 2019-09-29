@@ -1,22 +1,55 @@
-# go 语言web框架
-gin只是封装请求上下文，数据库连接、日志等功能都没有，这里封装了一下方便后面开箱即用
+github master push 自动触发部署到博客
 
-# 这里有几个疑问点
+# elstaticsearch 存储文档
+index: /:topic/_doc/:id
+```json
+{
+    "title": "标题",
+    "keywords": "关键字",
+    "Description": "文件描述",
+    "author": "作者",
+    "content": "这里存储的是文章内容"
+}
+```
+- 支持中文分词
+- 搜索高亮
 
-为什么代码放开internal里面，而没有放在pkg里面?\
-internal里面代码意思是不共享不能被别人的项目import的，如果是开源组建的话放在pkg里面的包可以被别人引用，例如我们import的gin都是在pkg下面的。这里只是一个web框架不用做开源引用，所以怎么写都行
+# CI
+- travis ci 自动部署
+- ci部署完成执行go脚本
+- douyacun.yml
+```yaml
+# 作者
+author: douyacun
+# 作者邮箱 (默认当作全局配置，优先展示文章配置的邮箱）
+email: douyacun@gmail.com
+# 作者github连接
+gihutb: https://github.com/douyacun
+# 微信公众号
+WeChatSubscription: douyacun
+# 微信公众号二维码
+WeChatSubscriptionQrcode: /assert/douyacun_qrcode.jpg
+topics: # 话题
+  # golang话题
+  golang:
+    # 建议icon使用svg
+    icon: 话题icon
+    # 文章目录支持1级，后续考虑多级
+    article:
+      # 文章外部图片建议在内部进行配置
+      - json解析技巧.md
+      - select.md
+  # redis话题
+  redis:
+  mysql:
+```
+- go脚本解析douyacun.yml
+- 根据douyacun.yml中配置的文章路径收集文章
+- 文章分析 写入 elstaticsearch
 
-主从多个数据库连接怎么维护? \
-`internal/db/mysql`下面封装了NewDB方法，照例在来一个全局变量就好了
+# website
 
-日志怎么维护的? \
-日志使用的是第三方扩展，logger/zap封装了一下啊zap的功能，如果想换一个扩展或者想自己实现一下这写方法就好了
-
-路由怎么用? \
-路由的话就完全使用gin的路由
-
-mvc怎么实现? \
-web mvc太经典了，不是说换种语言就不用mvc了，不过现在v应该是很少用到了，gin也是支持模版渲染，不多说，m的话用的是gorm，c的话我个人是用handler来代替柔和，作用是验证参数、柔和方法完成当前功能
-
-配置文件? \
-配置的话，这里也是用全局变量来维护的，internal/config.Conf 结构体保存了变量配置
+route:
+- / 网站根目录
+- /posts/:id 文章详情页
+- /topic/:id 话题

@@ -8,11 +8,14 @@ import (
 )
 
 type Conf struct {
-	MysqlDSN string `yaml:"mysql-dsn"`
-	Port     string `yaml:"port"`
-	RunMode  string `yaml:"run-mode"`
-	Daemon   string `yaml:"daemon"`
-	PidFile  string `yaml:"pid-file"`
+	MysqlDSN             string   `yaml:"mysql-dsn"`
+	ElasticsearchAddress []string `yaml:"elstaticsearch-address"`
+	Port                 string   `yaml:"port"`
+	RunMode              string   `yaml:"run-mode"`
+	Daemon               string   `yaml:"daemon"`
+	PidFile              string   `yaml:"pid-file"`
+	LogFile              string   `yaml:"log-file"`
+	ImageDir             string   `yaml:"image-dir"`
 }
 
 var config Conf
@@ -32,7 +35,7 @@ func NewConfig(filename string) *Conf {
 	return &config
 }
 
-func IsDaemon() bool  {
+func IsDaemon() bool {
 	if strings.ToLower(config.Daemon) == "on" {
 		return true
 	} else {

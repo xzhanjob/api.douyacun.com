@@ -1,4 +1,4 @@
-package main
+package main 
 
 import (
 	"dyc/internal/commands"
@@ -11,11 +11,11 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "douyacun"
 	app.Commands = []cli.Command{
-		commands.StartCommands,
+		commands.Start,
+		commands.Deploy,
 	}
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
 	}
-	// 日志在这里处理
 }

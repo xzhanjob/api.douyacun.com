@@ -15,15 +15,15 @@ import (
 	"syscall"
 )
 
-var StartCommands = cli.Command{
+var Start = cli.Command{
 	Name:   "start",
 	Usage:  "",
 	Action: startAction,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:     "conf",
-			Usage:    "--conf [filename]",
-			EnvVar:   "__DOUYACUN_CONF",
+			Usage:    "-conf [filename]",
+			EnvVar:   "_DOUYACUN_CONF",
 			Required: true,
 		},
 	},
