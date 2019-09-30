@@ -5,4 +5,4 @@ port: :9003
 pid-file: /Users/liuning/Documents/github/douyacun-go/storage/douyacun.pid
 log-file: /Users/liuning/Documents/gitlab/api.douyacun.com/storage/logs/douyacun.log
 elstaticsearch-address: [http://192.168.1.2:9200]
-image-dir: /Users/liuning/Documents/gitlab/api.douyacun.com/storage/images/
+image-dir: /Users/liuning/Documents/gitlab/api.douyacun.com/storage/images

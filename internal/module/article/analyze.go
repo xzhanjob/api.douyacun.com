@@ -3,6 +3,7 @@ package article
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"dyc/internal/config"
 	"dyc/internal/db"
 	"dyc/internal/helper"
@@ -10,9 +11,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/olivere/elastic/v7"
 	"gopkg.in/yaml.v2"
 	"io"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
@@ -20,13 +21,9 @@ import (
 )
 
 const (
-	TopicCost  = "articles"
-	ImageRegex = `!\[(.*)\]\((.*)(.png|.gif|.jpg|.jpeg)(.*)\)`
-)
-
-// mapping
-/**
-{
+	TopicCost    = "articles"
+	ImageRegex   = `!\[(.*)\]\((.*)(.png|.gif|.jpg|.jpeg)(.*)\)`
+	TopicMapping = `{
     "mappings": {
         "properties": {
             "author": {
@@ -90,10 +87,10 @@ const (
             }
         }
     }
-}
-*/
+}`
+)
 
-type article struct {
+type Article struct {
 	Title                    string    `yaml:"Title" json:"title"`
 	Keywords                 string    `yaml:"Keywords" json:"keywords"`
 	Description              string    `yaml:"Description" json:"description"`
@@ -104,15 +101,15 @@ type article struct {
 	Email                    string    `yaml:"Email" json:"email"`
 	Github                   string    `yaml:"Github" json:"github"`
 	Key                      string    `yaml:"Key" json:"key"`
-	ID                       string    `yaml:"-" json:"-"`
+	ID                       string    `yaml:"-" json:"id"`
 	Topic                    string    `yaml:"-" json:"topic"`
 	WechatSubscriptionQrcode string    `yaml:"WechatSubscriptionQrcode" json:"wechat_subscription_qrcode"`
 	WechatSubscription       string    `yaml:"wechat_subscription" json:"wechat_subscription"`
 }
 
-func NewArticle(file string) (*article, error) {
+func NewArticle(file string) (*Article, error) {
 	var (
-		t   article
+		t   Article
 		err error
 	)
 	r, err := os.Open(file)
@@ -154,16 +151,14 @@ func NewArticle(file string) (*article, error) {
 	return &t, nil
 }
 
-func (a *article) UploadImage(assert, dir string) (err error) {
+func (a *Article) UploadImage(assert, dir string) (err error) {
 	matched, err := regexp.MatchString(ImageRegex, a.Content)
 	if err != nil {
 		return errors.New(fmt.Sprintf("regexp match failed: %s", err))
 	}
 	if matched {
-		// web访问图片目录
-		imageDir := fmt.Sprintf("/%s/%s", a.Key, strings.Trim(dir, "/"))
 		// 服务器存储目录
-		storageDir := fmt.Sprintf("/%s%s", strings.Trim(config.Get().ImageDir, "/"), imageDir)
+		storageDir := fmt.Sprintf("/%s/%s/%s", strings.Trim(config.Get().ImageDir, "/"), a.Key, strings.Trim(dir, "/"))
 		if err = os.MkdirAll(storageDir, 0755); err != nil {
 			return err
 		}
@@ -172,8 +167,8 @@ func (a *article) UploadImage(assert, dir string) (err error) {
 			filename := strings.Trim(v[2]+v[3], "/")
 			src := fmt.Sprintf("%s/%s", assert, filename)
 			// 替换文件image路径
-			rebuild := strings.ReplaceAll(v[0], v[2]+v[3], fmt.Sprintf("%s/%s", imageDir, filename))
-			// 服务器文件据对
+			rebuild := strings.ReplaceAll(v[0], v[2]+v[3], fmt.Sprintf("/%s/%s/%s/%s", "images", a.Key, strings.Trim(dir, "/"), filename))
+			// 服务器文件
 			dst := storageDir + "/" + filename
 			if !helper.FileExists(src) {
 				logger.Warnf("image(%s) not found(%s)", v[0], src)
@@ -182,14 +177,14 @@ func (a *article) UploadImage(assert, dir string) (err error) {
 			if err != nil {
 				return err
 			}
-			logger.Debugf("上传图片 src: %s -> dst: %s", src, dst)
+			logger.Debugf("文章: %s 上传图片 src: %s -> dst: %s", a.Title, src, dst)
 			a.Content = strings.ReplaceAll(a.Content, v[0], rebuild)
 		}
 	}
 	return nil
 }
 
-func (a *article) Complete(c *conf, t string, position int) {
+func (a *Article) Complete(c *conf, t string, position int) {
 	if len(strings.TrimSpace(a.Author)) == 0 {
 		a.Author = c.Author
 	}
@@ -206,29 +201,53 @@ func (a *article) Complete(c *conf, t string, position int) {
 	// todo
 	// 1. git读取文章的创建时间和修改时间
 	// 拼接文章id md5(user.id-topic-文章位置)
-	a.ID =  fmt.Sprintf("%s-%s-%d", a.Topic, a.Key, position)
+	a.ID = fmt.Sprintf("%s-%s-%d", a.Topic, a.Key, position)
 }
 
-func (a *article) Storage() error {
+func (a *Article) Storage() error {
 	s, err := json.MarshalIndent(a, "", "\t")
 	if err != nil {
 		return err
 	}
-	resp, err := db.ES.Index(
-		TopicCost,
-		strings.NewReader(string(s)),
-		db.ES.Index.WithDocumentID(a.ID),
-		db.ES.Index.WithRefresh("true"),
-	)
+	_, err = db.ES.Index().
+		Index(TopicCost).
+		BodyJson(string(s)).
+		Id(a.ID).
+		Do(context.Background())
 	if err != nil {
 		return err
 	}
-	data, err := ioutil.ReadAll(resp.Body)
+	return nil
+}
+
+func Initialize() error {
+	// Use the IndexExists service to check if a specified index exists.
+	exists, err := db.ES.IndexExists(TopicCost).Do(context.Background())
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode >= 300 || resp.StatusCode < 200 {
-		logger.Errorf("%s", data)
+	if !exists {
+		_, err := db.ES.CreateIndex(TopicCost).Body(TopicMapping).Do(context.Background())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Purge(key string) error {
+	// Use the IndexExists service to check if a specified index exists.
+	exists, err := db.ES.IndexExists(TopicCost).Do(context.Background())
+	if err != nil {
+		return err
+	}
+	if exists {
+		bq := elastic.NewTermQuery("key", key)
+		purgeResp, err := db.ES.DeleteByQuery().Index(TopicCost).Query(bq).Do(context.Background())
+		if err != nil {
+			return err
+		}
+		logger.Debugf("delete articles: %v", purgeResp)
 	}
 	return nil
 }

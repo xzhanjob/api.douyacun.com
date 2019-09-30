@@ -52,7 +52,7 @@ func Server(ctx context.Context, wg *sync.WaitGroup) {
 		ErrorLog: nil,
 	}
 	go func() {
-		logger.Debug("start server 127.0.0.1:9001")
+		logger.Debugf("start server 127.0.0.1:%s", config.Get().Port)
 		_ = server.ListenAndServe()
 	}()
 	<-ctx.Done()
