@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/md5"
 	"dyc/internal/config"
 	"dyc/internal/db"
 	"dyc/internal/helper"
 	"dyc/internal/logger"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -201,7 +203,7 @@ func (a *Article) Complete(c *conf, t string, position int) {
 	// todo
 	// 1. git读取文章的创建时间和修改时间
 	// 拼接文章id md5(user.id-topic-文章位置)
-	a.ID = fmt.Sprintf("%s-%s-%d", a.Topic, a.Key, position)
+	a.ID = hex.EncodeToString(md5.New().Sum([]byte(fmt.Sprintf("%s-%s-%d", a.Topic, a.Key, position))))
 }
 
 func (a *Article) Storage() error {

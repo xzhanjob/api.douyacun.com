@@ -26,7 +26,6 @@ func Server(ctx context.Context, wg *sync.WaitGroup) {
 	defer fp.Close()
 	logger.NewLogger(fp)
 	// 数据库
-	db.NewDB(config.Get().MysqlDSN)
 	db.NewElasticsearch(config.Get().ElasticsearchAddress)
 	defer shutdown()
 	// 启动gin
@@ -52,7 +51,7 @@ func Server(ctx context.Context, wg *sync.WaitGroup) {
 		ErrorLog: nil,
 	}
 	go func() {
-		logger.Debugf("start server 127.0.0.1:%s", config.Get().Port)
+		logger.Debugf("start server 127.0.0.1%s", config.Get().Port)
 		_ = server.ListenAndServe()
 	}()
 	<-ctx.Done()

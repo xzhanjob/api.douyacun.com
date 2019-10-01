@@ -9,5 +9,7 @@ func NewRouter(router *gin.Engine) {
 	api := router.Group("/api")
 	{
 		api.GET("/articles", article.ListHandler)
+		api.GET("/article/:id", article.InfoHandler)
+		api.GET("/topic/:topic", article.TopicHandler)
 	}
 }

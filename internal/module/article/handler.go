@@ -1,24 +1,54 @@
 package article
 
 import (
-	"context"
-	"dyc/internal/db"
+	"dyc/internal/logger"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"reflect"
 )
 
 func ListHandler(c *gin.Context) {
-	searchResult, err := db.ES.Search().Index(TopicCost).From(0).Size(10).Do(context.Background())
+	total, data, err := NewIndex()
 	if err != nil {
+		logger.Errorf("首页文章列表错误: %s", err)
+		c.JSON(http.StatusInternalServerError, "服务器出错了!")
+		return
+	}
+	if total == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"total": total, "data": data})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"total": total, "data": data})
+	return
+}
+
+func InfoHandler(c *gin.Context) {
+	id := c.Param("id")
+	logger.Debugf("%s", id)
+	data, err := NewInfo(id)
+	if err != nil {
+		logger.Errorf("%s", err)
+		c.JSON(http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	if data == nil {
 		c.JSON(http.StatusNotFound, "not found")
+		return
 	}
-	var (
-		data Article
-		res  = make([]Article, 0, 10)
-	)
-	for _, item := range searchResult.Each(reflect.TypeOf(data)) {
-		res = append(res, item.(Article))
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
+
+func TopicHandler(c *gin.Context) {
+	topic := c.Param("topic")
+	total, data, err := NewTopic(topic)
+	if err != nil {
+		logger.Errorf("首页文章列表错误: %s", err)
+		c.JSON(http.StatusInternalServerError, "服务器出错了!")
+		return
 	}
-	c.JSON(http.StatusOK, gin.H{"total": searchResult.Hits.TotalHits.Value, "data": res})
+	if total == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"total": total, "data": data})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"total": total, "data": data})
+	return
 }
