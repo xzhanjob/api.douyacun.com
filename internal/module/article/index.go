@@ -50,13 +50,14 @@ func NewTopic(topic string) (int64, *[]index, error) {
 		res  = make([]index, 0, 10)
 	)
 	fields := helper.GetStructJsonTag(data)
-	_source := elastic.NewFetchSourceContext(true)
-	_source.Include(fields...)
 	tq := elastic.NewTermQuery("topic", topic)
+	_source := elastic.NewSearchSource().
+		Query(tq).
+		FetchSource(true).
+		FetchSourceIncludeExclude(fields, nil)
 	searchResult, err := db.ES.Search().
 		Index(TopicCost).
-		Query(tq).
-		Source(_source).
+		SearchSource(_source).
 		From(0).
 		Size(10).
 		Do(context.Background())

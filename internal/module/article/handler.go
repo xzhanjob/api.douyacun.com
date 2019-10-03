@@ -52,3 +52,23 @@ func TopicHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"total": total, "data": data})
 	return
 }
+
+func SearchHandler(c *gin.Context) {
+	q := c.Query("q")
+	if len(q) == 0 {
+		c.JSON(http.StatusBadRequest, "请指定查询内容")
+		return
+	}
+	total, data, err := NewSearch(q)
+	if err != nil {
+		logger.Errorf("文章搜索错误: %s", err)
+		c.JSON(http.StatusInternalServerError, "服务器出错了!")
+		return
+	}
+	if total == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"total": total, "data": data})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"total": total, "data": data})
+	return
+}

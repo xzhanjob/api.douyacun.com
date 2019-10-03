@@ -32,13 +32,17 @@ const (
                 "type": "keyword"
             },
             "content": {
-                "type": "text"
+                "type": "text",
+                "analyzer": "ik_max_word",
+                "search_analyzer": "ik_smart"
             },
             "date": {
                 "type": "date"
             },
             "description": {
-                "type": "text"
+                "type": "text",
+                "analyzer": "ik_max_word",
+                "search_analyzer": "ik_smart"
             },
             "email": {
                 "type": "keyword"
@@ -51,13 +55,17 @@ const (
                 "type": "keyword"
             },
             "keywords": {
-                "type": "text"
+                "type": "text",
+                "analyzer": "ik_max_word",
+                "search_analyzer": "ik_smart"
             },
             "last_edit_time": {
                 "type": "date"
             },
             "title": {
                 "type": "text",
+                "analyzer": "ik_max_word",
+                "search_analyzer": "ik_smart",
                 "fields": {
                     "keyword": {
                         "type": "keyword",
