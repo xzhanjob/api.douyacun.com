@@ -59,6 +59,10 @@ const (
                 "analyzer": "ik_max_word",
                 "search_analyzer": "ik_smart"
             },
+            "label": {
+                "type": "text",
+                "index": false
+            },
             "last_edit_time": {
                 "type": "date"
             },
@@ -103,6 +107,7 @@ const (
 type Article struct {
 	Title                    string    `yaml:"Title" json:"title"`
 	Keywords                 string    `yaml:"Keywords" json:"keywords"`
+	Label                    string    `yaml:"Label" json:"label"`
 	Description              string    `yaml:"Description" json:"description"`
 	Author                   string    `yaml:"Author" json:"author"`
 	Date                     time.Time `yaml:"Date" json:"date"`
