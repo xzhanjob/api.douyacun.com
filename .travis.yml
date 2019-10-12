@@ -26,5 +26,6 @@ script:
 deploy:
   provider: script
   script: rsync -avz ./* ${deploy_dir}
+  skip_cleanup: true
 #  on:
 #    tags: true
