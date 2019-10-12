@@ -12,6 +12,14 @@ import (
 var StopCommand = cli.Command{
 	Name:   "stop",
 	Action: StopAction,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:     "conf",
+			Usage:    "-conf [filename]",
+			EnvVar:   "_DOUYACUN_CONF",
+			Required: true,
+		},
+	},
 }
 
 func StopAction(c *cli.Context) error {

@@ -29,7 +29,7 @@ script:
   - make
 deploy:
   provider: script
-  script: cd .. && rsync -azv api.douyacun.com/ douyacun:${deploy_dir}
+  script: scripts/travis.sh
   skip_cleanup: true
 #  on:
 #    tags: true

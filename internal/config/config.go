@@ -36,7 +36,7 @@ func NewConfig(filename string) *Conf {
 }
 
 func IsDaemon() bool {
-	if strings.ToLower(config.Daemon) == "on" {
+	if strings.ToLower(config.Daemon) == "on" || strings.ToLower(config.Daemon) == "true" {
 		return true
 	} else {
 		return false
