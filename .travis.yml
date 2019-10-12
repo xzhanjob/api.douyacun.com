@@ -26,5 +26,5 @@ script:
 deploy:
   provider: script
   script: rsync -avz ./* ${deploy_dir}
-  on:
-    tags: true
+#  on:
+#    tags: true
