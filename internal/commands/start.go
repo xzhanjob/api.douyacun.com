@@ -11,8 +11,8 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"sync"
 	"syscall"
+	"time"
 )
 
 var Start = cli.Command{
@@ -31,8 +31,6 @@ var Start = cli.Command{
 
 func startAction(c *cli.Context) (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 	// 加载配置文件
 	config.NewConfig(c.String("conf"))
 	// 设置运行环境
@@ -40,31 +38,31 @@ func startAction(c *cli.Context) (err error) {
 
 	dmn := &daemon.Context{
 		PidFileName: config.Get().PidFile,
-		PidFilePerm: 0644,
 		LogFileName: "",
-		LogFilePerm: 0,
-		WorkDir:     "/",
-		Umask:       027,
 	}
 	if !daemon.WasReborn() && config.IsDaemon() {
 		cancel()
 		if pid, ok := initialize.ChildAlreadyRunning(config.Get().PidFile); ok {
-			log.Fatalf("daemon already running with process id %v", pid)
+			log.Printf("daemon already running with process id %v", pid)
+			return nil
 		}
 		child, err := dmn.Reborn()
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			return nil
 		}
 		if child != nil {
 			if !helper.FileOverwrite(config.Get().PidFile, []byte(strconv.Itoa(child.Pid))) {
-				log.Fatalf("failed writing process id to \"%s\"", config.Get().PidFile)
+				log.Printf("failed writing process id to \"%s\"", config.Get().PidFile)
+				return nil
 			}
-			log.Fatalf("daemon started with process id %v\n", child.Pid)
+			log.Printf("daemon started with process id %v\n", child.Pid)
+			return nil
 		}
 	}
 
 	// 启动web服务
-	go initialize.Server(ctx, &wg)
+	go initialize.Server(ctx)
 	// 处理结束信号
 	done := make(chan os.Signal)
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
@@ -72,6 +70,6 @@ func startAction(c *cli.Context) (err error) {
 	log.Print("web server shutdown...")
 	// 通知goroutine要结束，关闭一下资源
 	cancel()
-	wg.Done()
+	time.Sleep(100 * time.Millisecond)
 	return nil
 }

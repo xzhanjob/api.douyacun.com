@@ -9,11 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
-	"sync"
 )
 
-func Server(ctx context.Context, wg *sync.WaitGroup) {
-	defer wg.Done()
+func Server(ctx context.Context) {
 	var (
 		engine *gin.Engine
 		err    error
