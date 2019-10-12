@@ -27,7 +27,7 @@ script:
   - ls -la
 deploy:
   provider: script
-  script: pwd && ls -la
+  script: cd .. && rsync -azv api.douyacun.com/ ${deploy_dir}
   skip_cleanup: true
 #  on:
 #    tags: true
