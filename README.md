@@ -1,5 +1,7 @@
 github master push 自动触发部署到博客
 
+[![Build Status](https://travis-ci.org/douyacun/api.douyacun.com.svg?branch=master)](https://travis-ci.org/douyacun/api.douyacun.com)
+
 # 文章配置 
 index: /:topic/_doc/:id
 ```yaml
