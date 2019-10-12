@@ -8,9 +8,6 @@ env:
     - GO111MODULE=on
     - GOARCH=amd64
     - GO_FOR_RELEASE=1.13
-branches:
-  only:
-    - master
 git:
   depth: 1
 before_install:
