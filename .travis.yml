@@ -20,8 +20,6 @@ before_install:
   - chmod 600 ~/.ssh/id_rsa
   - echo -e "Host douyacun\n\thostname ${hostname}\n\tport ${port}\n\tuser ${user}\n\tIdentityFile  ~/.ssh/id_rsa" > ~/.ssh/config
   - echo '149.129.67.12 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC5mLOZ11Y+xqma6x6hAWSfbb6Poj+APKsIe1VLCs8FMaiXlsanSfS8tYFGpNorclRFoiNOlOuNsPzjIqkkJ+8HNxbMbpbJP//CuFhw363t7UcS2K0Xmvmw9wMy5tOTe+lywqeXmsrIaUwdA+Mgf65iqEifyddSwYLddiQ9fGE7HqxPFJ8ZwYpECKMYgAUSk1xXWskaQn4WsgrP2F35Zx7amGkRNvGT8BsliswjrPRklksq7NhqaUt5JE51Ey4ljtA0sVyGsTfTxrESsIHQSiw55lXhhk5M/fnMghnR79Tvck67V40UOdAq4yv2EXUXzrE/lfd9cUK5Gj2yLFuDc7Q9' >> ~/.ssh/known_hosts
-  - cat ~/.ssh/config
-  - cat ~/.ssh/known_hosts
 install:
   - go version
   - go mod download
@@ -31,5 +29,5 @@ deploy:
   provider: script
   script: scripts/travis.sh
   skip_cleanup: true
-#  on:
-#    tags: true
+  on:
+    tags: true
