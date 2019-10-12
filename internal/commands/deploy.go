@@ -19,13 +19,18 @@ var Deploy = cli.Command{
 			EnvVar:   "_DOUYACUN_CONF",
 			Required: true,
 		},
+		cli.StringFlag{
+			Name:        "dir",
+			Usage:       "-dir /Users/liuning/Documents/github/book",
+			Required:    true,
+		},
 	},
 	Action: deployAction,
 }
 
 func deployAction(c *cli.Context) (err error) {
 	initialize.Loading(c.String("conf"))
-	dir := "/Users/liuning/Documents/github/book"
+	dir := c.String("dir")
 	conf, err := article.LoadDir(dir)
 	if err != nil {
 		logger.Fatalf("加载配置文件: %s", err)
