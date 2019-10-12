@@ -8,6 +8,9 @@ env:
     - GO111MODULE=on
     - GOARCH=amd64
     - GO_FOR_RELEASE=1.13
+branches:
+  only:
+    - master
 git:
   depth: 1
 before_install:
@@ -18,14 +21,13 @@ before_install:
   - echo -e "Host douyacun\n\thostname ${hostname}\n\tport ${port}\n\tuser ${user}\n\tIdentityFile  ~/.ssh/id_rsa" > ~/.ssh/config
 install:
   - go version
-  - go mod help
   - go mod download
 script:
   - make
   - ls -la
 deploy:
   provider: script
-  script: rsync -avz ./* ${deploy_dir}
+  script: pwd && ls -la
   skip_cleanup: true
 #  on:
 #    tags: true
