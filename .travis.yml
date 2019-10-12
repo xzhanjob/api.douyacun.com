@@ -19,7 +19,7 @@ before_install:
     -in id_rsa.enc -out ~\/.ssh/id_rsa -d
   - chmod 600 ~\/.ssh/id_rsa
   - echo -e "Host douyacun\n\thostname ${hostname}\n\tport ${port}\n\tuser ${user}\n\tIdentityFile  ~/.ssh/id_rsa" > ~\/.ssh/id_rsa
-  - echo ${key} >> ~/.ssh/known_hosts
+  - echo '149.129.67.12 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBB5FuLvPQczzMLHjExeSRgG9YMFzbWX0NODZdNbjqvWl+hX6wwF3IYlOrjBK/N+U/AAqNLCIRpf68uwT5hBk/jE=' >> ~/.ssh/known_hosts
   - cat ~\/.ssh/id_rsa
   - cat ~/.ssh/known_hosts
 install:
