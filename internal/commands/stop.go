@@ -31,11 +31,11 @@ func StopAction(c *cli.Context) error {
 	dctx.PidFileName = config.Get().PidFile
 	child, err := dctx.Search()
 	if err != nil {
-		logger.Error(err)
+		logger.Info(err)
 		return nil
 	}
 	if err = child.Signal(syscall.SIGTERM); err != nil {
-		logger.Error(err)
+		logger.Info(err)
 		return nil
 	}
 	st, err := child.Wait()

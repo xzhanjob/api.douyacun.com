@@ -28,3 +28,9 @@ deploy:
   skip_cleanup: true
 #  on:
 #    tags: true
+notifications:
+  email:
+    recipients:
+      - douyacun@gmail.com
+    on_success:
+    on_failure: always
