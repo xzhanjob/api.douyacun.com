@@ -17,7 +17,6 @@ before_install:
   - mkdir -p ~\/.ssh
   - openssl aes-256-cbc -K $encrypted_efc1f7a0d884_key -iv $encrypted_efc1f7a0d884_iv
     -in id_rsa.enc -out ~\/.ssh/id_rsa -d
-  - echo ${key} >> $HOME/.ssh/known_hosts
   - echo -e "Host douyacun\n\thostname ${hostname}\n\tport ${port}\n\tuser ${user}\n\tIdentityFile  ~/.ssh/id_rsa" > ~/.ssh/config
 install:
   - go version
@@ -27,7 +26,10 @@ script:
   - ls -la
 deploy:
   provider: script
-  script: cd .. && rsync -azv api.douyacun.com/ ${deploy_dir}
+  script: cd .. && rsync -azv api.douyacun.com/ \/data\/www\/api.douyacun.com
   skip_cleanup: true
 #  on:
 #    tags: true
+addons:
+  ssh_known_hosts:
+    -${hostname}
