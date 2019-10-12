@@ -26,7 +26,7 @@ script:
   - ls -la
 deploy:
   provider: script
-  script: cd .. && rsync -azv api.douyacun.com/ \/data\/www\/api.douyacun.com
+  script: cd .. && rsync -azv api.douyacun.com/ douyacun:\/data\/www\/api.douyacun.com
   skip_cleanup: true
 #  on:
 #    tags: true
