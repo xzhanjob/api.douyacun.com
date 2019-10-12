@@ -10,11 +10,11 @@ env:
     - GO_FOR_RELEASE=1.13
 git:
   depth: 1
+before_install:
+  - mkdir -p ~\/.ssh
+  - openssl aes-256-cbc -K $encrypted_efc1f7a0d884_key -iv $encrypted_efc1f7a0d884_iv
+    -in id_rsa.enc -out ~\/.ssh/id_rsa -d
 script:
   - go mod download
   - make
   - ls -la
-before_install:
-  - mkdir -p ~\/.ssh/id_rsa
-  - openssl aes-256-cbc -K $encrypted_efc1f7a0d884_key -iv $encrypted_efc1f7a0d884_iv
-    -in id_rsa.enc -out ~\/.ssh/id_rsa -d
