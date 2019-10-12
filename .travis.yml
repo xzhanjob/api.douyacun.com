@@ -1,4 +1,4 @@
-language: golang
+language: go
 sudo: required
 go:
   - 1.13.x
