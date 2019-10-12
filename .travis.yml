@@ -32,5 +32,5 @@ notifications:
   email:
     recipients:
       - douyacun@gmail.com
-    on_success:
+    on_success: change
     on_failure: always
