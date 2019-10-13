@@ -17,6 +17,7 @@ type index struct {
 	Description  string    `json:"description"`
 	Topic        string    `json:"topic"`
 	Id           string    `json:"id"`
+	Cover        string    `json:"cover"`
 }
 
 func NewIndex() (int64, *[]index, error) {

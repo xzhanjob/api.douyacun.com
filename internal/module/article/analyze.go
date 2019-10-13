@@ -108,6 +108,7 @@ type Article struct {
 	Title                    string    `yaml:"Title" json:"title"`
 	Keywords                 string    `yaml:"Keywords" json:"keywords"`
 	Label                    string    `yaml:"Label" json:"label"`
+	Cover                    string    `yaml:"Cover" json:"cover"`
 	Description              string    `yaml:"Description" json:"description"`
 	Author                   string    `yaml:"Author" json:"author"`
 	Date                     time.Time `yaml:"Date" json:"date"`
@@ -166,23 +167,40 @@ func NewArticle(file string) (*Article, error) {
 	return &t, nil
 }
 
-func (a *Article) UploadImage(assert, dir string) (err error) {
+// assert: douyacun.yml 配置的话题图片存储目录 dir: book所在目录
+func (a *Article) UploadImage(dir, assert string) (err error) {
+	// 文章图片所在目录绝对路径
+	assertAbs := fmt.Sprintf("/%s/%s", strings.Trim(dir, "/"), strings.Trim(assert, "/"))
+	// 图片服务存储目录
+	storageDir := fmt.Sprintf("/%s/%s/%s", strings.Trim(config.Get().ImageDir, "/"), a.Key, strings.Trim(assert, "/"))
+	if len(a.Cover) > 0 {
+		// 文章封面
+		_, err = helper.Copy(storageDir+"/"+a.Cover, assertAbs+"/"+a.Cover)
+		if err != nil {
+			return err
+		}
+		a.Cover = fmt.Sprintf("/%s/%s/%s/%s", "images", a.Key, strings.Trim(assert, "/"), a.Cover)
+		logger.Debugf("文章: %s 封面: %s", a.Title, a.Cover)
+	} else {
+		a.Cover = ""
+	}
+	// markdown图片
 	matched, err := regexp.MatchString(ImageRegex, a.Content)
 	if err != nil {
 		return errors.New(fmt.Sprintf("regexp match failed: %s", err))
 	}
 	if matched {
-		// 服务器存储目录
-		storageDir := fmt.Sprintf("/%s/%s/%s", strings.Trim(config.Get().ImageDir, "/"), a.Key, strings.Trim(dir, "/"))
+
 		if err = os.MkdirAll(storageDir, 0755); err != nil {
 			return err
 		}
 		re, _ := regexp.Compile(ImageRegex)
 		for _, v := range re.FindAllStringSubmatch(a.Content, -1) {
 			filename := strings.Trim(v[2]+v[3], "/")
-			src := fmt.Sprintf("%s/%s", assert, filename)
+			src := fmt.Sprintf("%s/%s", assertAbs, filename)
 			// 替换文件image路径
-			rebuild := strings.ReplaceAll(v[0], v[2]+v[3], fmt.Sprintf("/%s/%s/%s/%s", "images", a.Key, strings.Trim(dir, "/"), filename))
+			rebuild := strings.ReplaceAll(v[0], v[2]+v[3], fmt.Sprintf("/%s/%s/%s/%s", "images", a.Key, strings.Trim(assert, "/"), filename))
+			logger.Debugf("markdown image replace: %s -> %s", v[0], rebuild)
 			// 服务器文件
 			dst := storageDir + "/" + filename
 			if !helper.FileExists(src) {

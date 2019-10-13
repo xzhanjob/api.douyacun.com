@@ -53,7 +53,7 @@ Topics: # 话题
 
 # 订阅最新消息
 - index: subscriber
-- source: 
+- source:
 ```json
 {
   "email": "douyacun@gmail.com",
@@ -64,7 +64,7 @@ Topics: # 话题
 # todo
 - [ ] markdown 本地跳转
 - [x] 文章关键词提取
-- [ ] travis ci 自动部署
+- [x] travis ci 自动部署
 - [x] 图片提取
 - [ ] git提取文件创建时间
-- [ ] 文章封面
+- [x] 文章封面

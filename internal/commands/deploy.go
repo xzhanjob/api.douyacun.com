@@ -56,8 +56,6 @@ func deployAction(c *cli.Context) (err error) {
 				defer w.Done()
 				// 文件路径
 				filename := fmt.Sprintf("/%s/%s/%s", strings.Trim(dir, "/"), strings.Trim(topic.Dir, "/"), strings.Trim(topic.Articles[position], "/"))
-				// 图片资源路径
-				assert := fmt.Sprintf("/%s/%s", strings.Trim(dir, "/"), strings.Trim(topic.Assert, "/"))
 				a, err := article.NewArticle(filename)
 				if err != nil {
 					logger.Errorf("文章初始化失败: %s", err)
@@ -66,7 +64,7 @@ func deployAction(c *cli.Context) (err error) {
 				// 数据完善
 				a.Complete(conf, title, position)
 				// 上传图片
-				if err = a.UploadImage(assert, topic.Assert); err != nil {
+				if err = a.UploadImage(dir, topic.Assert); err != nil {
 					logger.Errorf("图片上传失败: %s", err)
 					return
 				}
