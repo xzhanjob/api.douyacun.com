@@ -61,7 +61,8 @@ const (
             },
             "label": {
                 "type": "text",
-                "index": false
+                "index": true,
+				"fielddata": true
             },
             "last_edit_time": {
                 "type": "date"

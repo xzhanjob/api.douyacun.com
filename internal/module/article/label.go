@@ -16,9 +16,10 @@ type Labels struct {
 func NewLabels(size int) (l *[]string, err error) {
 	var (
 		data Labels
-		res = make([]string, 0, size)
+		res  = make([]string, 0, size)
 	)
-	_source := elastic.NewSearchSource().
+	q := elastic.NewBoolQuery().Filter(elastic.NewScriptQuery(elastic.NewScript(`doc['label'].size() > 0`)))
+	_source := elastic.NewSearchSource().Query(q).
 		FetchSource(true).
 		FetchSourceIncludeExclude(helper.GetStructJsonTag(data), nil)
 	searchResult, err := db.ES.Search().
