@@ -175,6 +175,9 @@ func (a *Article) UploadImage(dir, assert string) (err error) {
 	// 图片服务存储目录
 	storageDir := fmt.Sprintf("/%s/%s/%s", strings.Trim(config.Get().ImageDir, "/"), a.Key, strings.Trim(assert, "/"))
 	if len(a.Cover) > 0 {
+		if err = os.MkdirAll(storageDir, 0755); err != nil {
+			return err
+		}
 		// 文章封面
 		_, err = helper.Copy(storageDir+"/"+a.Cover, assertAbs+"/"+a.Cover)
 		if err != nil {
@@ -191,7 +194,6 @@ func (a *Article) UploadImage(dir, assert string) (err error) {
 		return errors.New(fmt.Sprintf("regexp match failed: %s", err))
 	}
 	if matched {
-
 		if err = os.MkdirAll(storageDir, 0755); err != nil {
 			return err
 		}
