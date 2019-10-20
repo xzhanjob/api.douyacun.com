@@ -4,6 +4,7 @@ import (
 	"context"
 	"dyc/internal/db"
 	"dyc/internal/helper"
+	"dyc/internal/logger"
 	"github.com/olivere/elastic/v7"
 	"reflect"
 	"time"
@@ -20,7 +21,10 @@ type index struct {
 	Cover        string    `json:"cover"`
 }
 
-func NewIndex() (int64, *[]index, error) {
+func NewIndex(p int) (int64, *[]index, error) {
+	limit := 10
+	skip := (p - 1) * limit
+	logger.Debugf("skip: %v", skip)
 	var (
 		data index
 		res  = make([]index, 0, 10)
@@ -31,8 +35,8 @@ func NewIndex() (int64, *[]index, error) {
 	searchResult, err := db.ES.Search().
 		Index(TopicCost).
 		FetchSourceContext(_source).
-		From(0).
-		Size(10).
+		From(skip).
+		Size(limit).
 		Do(context.Background())
 	if err != nil {
 		return 0, nil, err

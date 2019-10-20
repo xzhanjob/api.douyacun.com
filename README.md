@@ -62,10 +62,12 @@ Topics: # 话题
 ```
 
 # todo
-- [ ] markdown 本地跳转
+- [ ] markdown 本地跳转, 1-go-cannel.md
 - [x] 文章关键词提取
 - [x] travis ci 自动部署
 - [x] 图片提取
 - [ ] git提取文件创建时间
 - [x] 文章封面
-- [ ] 首页文章分页
+- [ ] 首页文章分页, 文章按更新时间排序
+- [x] 前端js文件404问题(nextjs link 默认会是预加载页面： <Link> will automatically prefetch pages in the background )
+- [x] 制作favicon.ico
