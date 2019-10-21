@@ -4,6 +4,7 @@ import (
 	"dyc/internal/module/article"
 	"dyc/internal/module/subscribe"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 func NewRouter(router *gin.Engine) {
@@ -16,4 +17,7 @@ func NewRouter(router *gin.Engine) {
 		api.GET("/search", article.SearchHandler)
 		api.POST("/subscribe", subscribe.CreateHandler)
 	}
+	router.GET("/ping", func(c *gin.Context) {
+		c.String(http.StatusOK, "OK")
+	})
 }
