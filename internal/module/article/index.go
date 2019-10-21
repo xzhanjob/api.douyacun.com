@@ -4,11 +4,11 @@ import (
 	"context"
 	"dyc/internal/db"
 	"dyc/internal/helper"
-	"dyc/internal/logger"
 	"github.com/olivere/elastic/v7"
 	"reflect"
 	"time"
 )
+const PageSize = 10
 
 type index struct {
 	Author       string    `json:"author"`
@@ -21,13 +21,11 @@ type index struct {
 	Cover        string    `json:"cover"`
 }
 
-func NewIndex(p int) (int64, *[]index, error) {
-	limit := 10
-	skip := (p - 1) * limit
-	logger.Debugf("skip: %v", skip)
+func NewIndex(page int) (int64, *[]index, error) {
+	skip := (page - 1) * PageSize
 	var (
 		data index
-		res  = make([]index, 0, 10)
+		res  = make([]index, 0, PageSize)
 	)
 	fields := helper.GetStructJsonTag(data)
 	_source := elastic.NewFetchSourceContext(true)
@@ -35,8 +33,9 @@ func NewIndex(p int) (int64, *[]index, error) {
 	searchResult, err := db.ES.Search().
 		Index(TopicCost).
 		FetchSourceContext(_source).
+		Sort("last_edit_time", false).
 		From(skip).
-		Size(limit).
+		Size(PageSize).
 		Do(context.Background())
 	if err != nil {
 		return 0, nil, err
@@ -49,22 +48,24 @@ func NewIndex(p int) (int64, *[]index, error) {
 	return searchResult.TotalHits(), &res, nil
 }
 
-func NewTopic(topic string) (int64, *[]index, error) {
+func NewTopic(topic string, page int) (int64, *[]index, error) {
 	var (
 		data index
-		res  = make([]index, 0, 10)
+		res  = make([]index, 0, PageSize)
 	)
+	skip := (page - 1) * PageSize
 	fields := helper.GetStructJsonTag(data)
 	tq := elastic.NewTermQuery("topic", topic)
 	_source := elastic.NewSearchSource().
 		Query(tq).
 		FetchSource(true).
-		FetchSourceIncludeExclude(fields, nil)
+		FetchSourceIncludeExclude(fields, nil).
+		Sort("last_edit_time", false)
 	searchResult, err := db.ES.Search().
 		Index(TopicCost).
 		SearchSource(_source).
-		From(0).
-		Size(10).
+		From(skip).
+		Size(PageSize).
 		Do(context.Background())
 	if err != nil {
 		return 0, nil, err

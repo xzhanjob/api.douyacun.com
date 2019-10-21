@@ -25,7 +25,6 @@ func ListHandler(c *gin.Context) {
 
 func InfoHandler(c *gin.Context) {
 	id := c.Param("id")
-	logger.Debugf("%s", id)
 	data, err := NewInfo(id)
 	if err != nil {
 		logger.Errorf("%s", err)
@@ -37,7 +36,11 @@ func InfoHandler(c *gin.Context) {
 
 func TopicHandler(c *gin.Context) {
 	topic := c.Param("topic")
-	total, data, err := NewTopic(topic)
+	page, err := strconv.Atoi(c.Query("page"))
+	if err != nil {
+		page = 1
+	}
+	total, data, err := NewTopic(topic, page)
 	if err != nil {
 		logger.Errorf("首页文章列表错误: %s", err)
 		c.JSON(http.StatusInternalServerError, "服务器出错了!")
