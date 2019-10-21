@@ -40,6 +40,8 @@ func startAction(c *cli.Context) (err error) {
 		PidFileName: config.Get().PidFile,
 		LogFileName: "",
 	}
+	dmn.Args = c.Args()
+
 	if !daemon.WasReborn() && config.IsDaemon() {
 		cancel()
 		if pid, ok := initialize.ChildAlreadyRunning(config.Get().PidFile); ok {
