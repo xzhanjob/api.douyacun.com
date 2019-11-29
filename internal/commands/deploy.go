@@ -2,12 +2,8 @@ package commands
 
 import (
 	"dyc/internal/initialize"
-	"dyc/internal/logger"
-	"dyc/internal/module/article"
-	"fmt"
+	"dyc/internal/module/deploy"
 	"github.com/urfave/cli"
-	"strings"
-	"sync"
 )
 
 var Deploy = cli.Command{
@@ -20,9 +16,9 @@ var Deploy = cli.Command{
 			Required: true,
 		},
 		cli.StringFlag{
-			Name:        "dir",
-			Usage:       "-dir /Users/liuning/Documents/github/book",
-			Required:    true,
+			Name:     "dir",
+			Usage:    "指定文章所在目录",
+			Required: true,
 		},
 	},
 	Action: deployAction,
@@ -30,51 +26,6 @@ var Deploy = cli.Command{
 
 func deployAction(c *cli.Context) (err error) {
 	initialize.Loading(c.String("conf"))
-	dir := c.String("dir")
-	conf, err := article.LoadDir(dir)
-	if err != nil {
-		logger.Fatalf("加载配置文件: %s", err)
-	}
-	// 清理一下文章
-	if err = article.Purge(conf.Key); err != nil {
-		logger.Fatalf("清理文章文件: %s", err)
-	}
-	// 初始化mapping
-	if err = article.Initialize(); err != nil {
-		logger.Fatalf("初始化es mapping: %s", err)
-	}
-	// 公众号二维码上传
-	if err = conf.Qrcode(dir); err != nil {
-		logger.Fatalf(": %s", err)
-	}
-	wg := sync.WaitGroup{}
-	for t, i := range conf.Topics {
-		for k, f := range i.Articles {
-			wg.Add(1)
-			logger.Debugf("analyze file: %s", f)
-			go func(position int, title string, topic article.Topic, w *sync.WaitGroup) {
-				defer w.Done()
-				// 文件路径
-				filename := fmt.Sprintf("/%s/%s/%s", strings.Trim(dir, "/"), strings.Trim(topic.Dir, "/"), strings.Trim(topic.Articles[position], "/"))
-				a, err := article.NewArticle(filename)
-				if err != nil {
-					logger.Errorf("文章初始化失败: %s", err)
-					return
-				}
-				// 数据完善
-				a.Complete(conf, title, position)
-				// 上传图片
-				if err = a.UploadImage(dir, topic.Assert); err != nil {
-					logger.Errorf("图片上传失败: %s", err)
-					return
-				}
-				if err := a.Storage(); err != nil {
-					logger.Errorf("elasticsearch 存储失败: %s", err)
-					return
-				}
-			}(k, t, i, &wg)
-		}
-	}
-	wg.Wait()
-	return nil
+	deploy.Run(c.String("dir"))
+	return
 }

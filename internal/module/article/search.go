@@ -2,6 +2,7 @@ package article
 
 import (
 	"context"
+	"dyc/internal/consts"
 	"dyc/internal/db"
 	"dyc/internal/helper"
 	"github.com/olivere/elastic/v7"
@@ -9,7 +10,9 @@ import (
 	"time"
 )
 
-type search struct {
+var Search _search
+
+type _search struct {
 	Author       string    `json:"author"`
 	Date         time.Time `json:"date"`
 	LastEditTime time.Time `json:"last_edit_time"`
@@ -20,10 +23,10 @@ type search struct {
 	Highlight    []string  `json:"highlight"`
 }
 
-func NewSearch(q string) (int64, *[]search, error) {
+func (*_search) List(q string) (int64, *[]_search, error) {
 	var (
-		data search
-		res  = make([]search, 0, 10)
+		data _search
+		res  = make([]_search, 0, 10)
 	)
 	_source := elastic.NewSearchSource().
 		Highlight(elastic.NewHighlight().Field("content")).
@@ -31,7 +34,7 @@ func NewSearch(q string) (int64, *[]search, error) {
 		FetchSource(true).
 		FetchSourceIncludeExclude(helper.GetStructJsonTag(data), nil)
 	searchResult, err := db.ES.Search().
-		Index(TopicCost).
+		Index(consts.TopicCost).
 		SearchSource(_source).
 		From(0).
 		Size(10).
@@ -40,7 +43,7 @@ func NewSearch(q string) (int64, *[]search, error) {
 		return 0, nil, err
 	}
 	for k, item := range searchResult.Each(reflect.TypeOf(data)) {
-		tmp := item.(search)
+		tmp := item.(_search)
 		tmp.Id = searchResult.Hits.Hits[k].Id
 		tmp.Highlight = searchResult.Hits.Hits[k].Highlight["content"]
 		res = append(res, tmp)

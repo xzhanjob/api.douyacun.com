@@ -2,27 +2,15 @@ github master push 自动触发部署到博客
 
 [![Build Status](https://travis-ci.org/douyacun/api.douyacun.com.svg?branch=master)](https://travis-ci.org/douyacun/api.douyacun.com)
 
-# 文章配置 
-index: /:topic/_doc/:id
-```yaml
-Title: 文章标题
-# 注意用 `,` 分隔
-Keywords: 关键字,seo优化使用
-Description: 文章
-Author: douyacun
-Date: 2019-09-19 18:03:32
-LastEditTime: 2019-10-09 14:36:06
-typora-root-url: ./assert
-```
-# ci 配置
-- travis ci 自动部署
-- ci部署完成执行go脚本
-- douyacun.yml
+# 全局配置
+**douyacun.yml 全局配置**
 ```yaml
 # 作者
 Author: douyacun
 # 作者邮箱 (默认当作全局配置，优先展示文章配置的邮箱）
 Email: douyacun@gmail.com
+# 密钥
+key: 1231345
 # 作者github连接
 Gihutb: https://github.com/douyacun
 # 微信公众号
@@ -32,24 +20,27 @@ WeChatSubscriptionQrcode: /assert/douyacun_qrcode.jpg
 Topics: # 话题
   # golang话题
   Golang:
-    # 建议icon使用svg
-    Icon: 话题icon
-    # 文章所在目录 
-    Dir: /go
-    # 图片路径
-    Assert: /go/assert
-    # 文章目录支持1级，后续考虑多级
-    Articles:
       # 文章外部图片建议在内部进行配置
       - 函数方法接口.md
       - 数组切片引用.md
       - json解析技巧.md
-  # redis话题
-  redis:
 ```
-- go脚本解析douyacun.yml
-- 根据douyacun.yml中配置的文章路径收集文章
-- 文章分析 写入 elstaticsearch
+# 文章配置 
+index: /:topic/:id
+```yaml
+# 如果读取不到标题，使用文件名作为标题
+Title: 文章标题
+# 注意用 `,` 分隔
+Keywords: 关键字,seo优化使用
+Description: 文章
+# 没有使用下面全局配置中的author
+Author: douyacun
+# date：文件创建时间，date > git首次提交时间，默认会取git版本中的首次提交日期 
+Date: 2019-09-19 18:03:32
+# LastEditTime: 文件更新日期，LastEditTime < git版本最后一次提交日期，默认会取git版本最后提交日期
+LastEditTime: 2019-10-09 14:36:06
+```
+- 文章唯一性标识，md5(douyacun.yml->key, "+", "文章所属话题(Golang)", "+", "文件名称")
 
 # 订阅最新消息
 - index: subscriber
@@ -63,7 +54,9 @@ Topics: # 话题
 
 # todo
 - [ ] markdown 本地跳转, 1-go-cannel.md
-- [ ] git提取文件创建时间
+- [ ] 封面功能，配置没有文件，取文档第一张图片作为封面
+- [ ] 图片压缩功能
+- [x] git提取文件创建时间
 - [x] 文章关键词提取
 - [x] travis ci 自动部署
 - [x] 图片提取

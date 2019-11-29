@@ -2,6 +2,7 @@ package article
 
 import (
 	"context"
+	"dyc/internal/consts"
 	"dyc/internal/db"
 	"dyc/internal/helper"
 	"dyc/internal/logger"
@@ -9,13 +10,15 @@ import (
 	"reflect"
 )
 
-type Labels struct {
+var Label _labels
+
+type _labels struct {
 	Label string `yaml:"label" json:"label"`
 }
 
-func NewLabels(size int) (l *[]string, err error) {
+func (*_labels) List(size int) (l *[]string, err error) {
 	var (
-		data Labels
+		data _labels
 		res  = make([]string, 0, size)
 	)
 	q := elastic.NewBoolQuery().Filter(elastic.NewScriptQuery(elastic.NewScript(`doc['label'].size() > 0`)))
@@ -23,7 +26,7 @@ func NewLabels(size int) (l *[]string, err error) {
 		FetchSource(true).
 		FetchSourceIncludeExclude(helper.GetStructJsonTag(data), nil)
 	searchResult, err := db.ES.Search().
-		Index(TopicCost).
+		Index(consts.TopicCost).
 		SearchSource(_source).
 		From(0).
 		Size(size).
@@ -33,7 +36,7 @@ func NewLabels(size int) (l *[]string, err error) {
 		return nil, err
 	}
 	for _, item := range searchResult.Each(reflect.TypeOf(data)) {
-		res = append(res, item.(Labels).Label)
+		res = append(res, item.(_labels).Label)
 	}
 	return &res, nil
 }

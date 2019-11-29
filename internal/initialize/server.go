@@ -3,9 +3,9 @@ package initialize
 import (
 	"context"
 	"dyc/internal/config"
+	"dyc/internal/controllers"
 	"dyc/internal/db"
 	"dyc/internal/logger"
-	"dyc/internal/route"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -42,7 +42,7 @@ func Server(ctx context.Context) {
 		}), gin.RecoveryWithWriter(fp))
 	}
 	// 路由
-	route.NewRouter(engine)
+	controllers.NewRouter(engine)
 	server := http.Server{
 		Addr:     config.Get().Port,
 		Handler:  engine,

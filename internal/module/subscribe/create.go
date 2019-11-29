@@ -8,18 +8,15 @@ import (
 
 const SubscriberIndex = "subscriber"
 
-type Subscriber struct {
+var Email _subscriber
+
+type _subscriber struct {
 	Email string    `json:"email"`
 	Date  time.Time `json:"date"`
 }
 
-func NewSubscriber(email string) *Subscriber {
-	return &Subscriber{
-		Email: email,
-		Date:  time.Now(),
-	}
-}
-func (s *Subscriber) Store() error {
+func (s *_subscriber) Store(email string) error {
+	s.Email = email
 	_, err := db.ES.Index().Index(SubscriberIndex).BodyJson(s).Do(context.Background())
 	if err != nil {
 		return err
