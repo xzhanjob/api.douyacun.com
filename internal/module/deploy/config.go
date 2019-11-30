@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -36,7 +37,7 @@ func LoadConfig(dir string) (*Conf, error) {
 	var (
 		conf Conf
 	)
-	configFile := helper.Path.Join(dir, "douyacun.yml")
+	configFile := path.Join(dir, "douyacun.yml")
 	conf.Root = dir
 	logger.Debugf("配置文件路径: %s", configFile)
 	if !helper.FileExists(configFile) {

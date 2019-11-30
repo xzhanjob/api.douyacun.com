@@ -17,6 +17,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -92,19 +93,19 @@ func NewArticle(file string) (*Article, error) {
 func (a *Article) UploadImage(dir string) (err error) {
 	// 文章图片所在目录绝对路径
 	//assertAbs := fmt.Sprintf("/%s/%s", strings.Trim(dir, "/"), strings.Trim(assert, "/"))
-	imageDir := helper.Path.Join(dir)
+	imageDir := path.Join(dir)
 	// 图片服务存储目录
 	//storageDir := fmt.Sprintf("/%s/%s/%s", strings.Trim(config.Get().ImageDir, "/"), a.Key, strings.Trim(assert, "/"))
-	storageDir := helper.Path.Join(config.Get().ImageDir, a.Key)
+	storageDir := path.Join(config.Get().ImageDir, a.Key)
 	// 文章封面 -> 上传
 	if len(a.Cover) > 0 {
 		if err = os.MkdirAll(storageDir, 0755); err != nil {
 			return
 		}
-		if _, err = helper.Copy(helper.Path.Join(storageDir, a.Cover), helper.Path.Join(imageDir, a.Cover)); err != nil {
+		if _, err = helper.Copy(path.Join(storageDir, a.Cover), path.Join(imageDir, a.Cover)); err != nil {
 			return
 		}
-		a.Cover = helper.Path.Join("images", a.Key, "assert", a.Cover)
+		a.Cover = path.Join("images", a.Key, "assert", a.Cover)
 		logger.Debugf("文章: %s 封面: %s", a.Title, a.Cover)
 	} else {
 		a.Cover = ""
@@ -121,12 +122,12 @@ func (a *Article) UploadImage(dir string) (err error) {
 		re, _ := regexp.Compile(consts.MarkDownImageRegex)
 		for _, v := range re.FindAllStringSubmatch(a.Content, -1) {
 			filename := strings.Trim(v[2]+v[3], "/")
-			src := helper.Path.Join(imageDir, filename)
+			src := path.Join(imageDir, filename)
 			// 替换文件image路径
-			rebuild := strings.ReplaceAll(v[0], v[2]+v[3], helper.Path.Join("images", a.Key, filename))
+			rebuild := strings.ReplaceAll(v[0], v[2]+v[3], path.Join("images", a.Key, filename))
 			logger.Debugf("markdown 内部图片替换: %s -> %s", v[0], rebuild)
 			// 服务器文件
-			dst := helper.Path.Join(storageDir, filename)
+			dst := path.Join(storageDir, filename)
 			if !helper.FileExists(src) {
 				logger.Warnf("image(%s) not found(%s)", v[0], src)
 			}
@@ -153,7 +154,7 @@ func (a *Article) Complete(c *Conf, topicTitle string, fileName string) {
 	}
 	// 如果文章头部没有读取到标题，使用文件名作为标题
 	if strings.TrimSpace(a.Title) == "" {
-		a.Title = helper.Path.File(a.FilePath)
+		a.Title = path.Base(a.FilePath)
 	}
 	// 通过git版本获取最后更新时间
 	lastEditTime, _ := helper.Git.LogFileLastCommitTime(a.FilePath)

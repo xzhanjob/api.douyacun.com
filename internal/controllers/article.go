@@ -22,7 +22,7 @@ func (*_article) List(c *gin.Context) {
 	if err != nil {
 		page = 1
 	}
-	total, data, err := article.Post.List(page)
+	total, data, err := article.Post.List(c, page)
 	if err != nil {
 		logger.Errorf("首页文章列表错误: %s", err)
 		c.JSON(http.StatusInternalServerError, "服务器出错了!")

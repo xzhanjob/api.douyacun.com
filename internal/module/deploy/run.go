@@ -1,8 +1,8 @@
 package deploy
 
 import (
-	"dyc/internal/helper"
 	"dyc/internal/logger"
+	"path"
 	"sync"
 )
 
@@ -28,11 +28,10 @@ func Run(dir string) {
 		for _, file := range articles {
 			wg.Add(1)
 			logger.Debugf("analyze file: %s", file)
-			//
 			go func(topicTitle, file string, w *sync.WaitGroup) {
 				defer w.Done()
 				// 文件路径
-				filePath := helper.Path.Join(dir, topicTitle, file)
+				filePath := path.Join(dir, topicTitle, file)
 				a, err := NewArticle(filePath)
 				if err != nil {
 					logger.Errorf("文章初始化失败: %s", err)
@@ -41,7 +40,7 @@ func Run(dir string) {
 				// 数据完善
 				a.Complete(conf, topicTitle, file)
 				// 上传图片
-				if err = a.UploadImage(helper.Path.Join(dir, a.Topic)); err != nil {
+				if err = a.UploadImage(path.Join(dir, a.Topic)); err != nil {
 					logger.Errorf("图片上传失败: %s", err)
 					return
 				}
@@ -53,4 +52,5 @@ func Run(dir string) {
 		}
 	}
 	wg.Wait()
+	// 生成webp图片
 }

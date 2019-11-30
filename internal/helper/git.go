@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -17,8 +18,8 @@ func (*_git) LogFileLastCommitTime(filePath string) (t time.Time, err error) {
 	if !Git.CheckGitExists() {
 		return time.Time{}, errors.New("git 命令不存在")
 	}
-	dir := Path.Dir(filePath)
-	file := Path.File(filePath)
+	dir := path.Dir(filePath)
+	file := path.Base(filePath)
 	command := fmt.Sprintf("cd %s && git log -1 --format='%%ct' -- %s", dir, file)
 	out, err := exec.Command("bash", "-c", command).Output()
 	if err != nil {
@@ -36,8 +37,8 @@ func (*_git) LogFileFirstCommitTime(filePath string) (t time.Time, err error) {
 	if !Git.CheckGitExists() {
 		return time.Time{}, errors.New("git 命令不存在")
 	}
-	dir := Path.Dir(filePath)
-	file := Path.File(filePath)
+	dir := path.Dir(filePath)
+	file := path.Base(filePath)
 	command := fmt.Sprintf("cd %s &&git log --reverse --format='%%ct' -- %s |awk 'NR == 1'", dir, file)
 	out, err := exec.Command("bash", "-c", command).Output()
 	if err != nil {

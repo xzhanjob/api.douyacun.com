@@ -3,6 +3,7 @@ module dyc
 go 1.12
 
 require (
+	github.com/chai2010/webp v1.1.0
 	github.com/gin-gonic/gin v1.4.0
 	github.com/jinzhu/gorm v1.9.10
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect

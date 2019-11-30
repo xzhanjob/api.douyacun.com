@@ -8,8 +8,11 @@ import (
 	"dyc/internal/logger"
 	"dyc/internal/module/deploy"
 	"encoding/json"
+	"github.com/gin-gonic/gin"
 	"github.com/olivere/elastic/v7"
+	"path"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -29,10 +32,10 @@ type index struct {
 	Description  string    `json:"description"`
 	Topic        string    `json:"topic"`
 	Id           string    `json:"id"`
-	Cover        string    `json:"cover"`
+	Cover        cover    `json:"cover"`
 }
 
-func (*_post) List(page int) (int64, *[]index, error) {
+func (*_post) List(ctx *gin.Context, page int) (int64, *[]index, error) {
 	skip := (page - 1) * PageSize
 	var (
 		data index
@@ -73,4 +76,13 @@ func (*_post) View(id string) (*deploy.Article, error) {
 	}
 	logger.Debugf("%s", resp.Id)
 	return &data, nil
+}
+
+type cover string
+
+func (c *cover) Convert(ctx *gin.Context) {
+	ext := path.Ext(string(*c))
+	if helper.Image.WebPSupportExt(ext) {
+		*c = cover(strings.Replace(string(*c), ext, ".webp", 1))
+	}
 }
