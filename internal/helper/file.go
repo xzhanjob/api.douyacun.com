@@ -1,8 +1,10 @@
 package helper
 
 import (
+	"fmt"
 	"io"
 	"os"
+	"path"
 )
 
 func FileExists(filename string) bool {
@@ -28,6 +30,9 @@ func Copy(dst, src string) (int64, error)  {
 		return 0, err
 	}
 	defer source.Close()
+	if err = os.MkdirAll(path.Dir(dst), 0755); err != nil {
+		return 0, fmt.Errorf("目录 %s 创建失败 %s", path.Dir(dst), err)
+	}
 	destination, err := os.Create(dst)
 	if err != nil {
 		return 0, err

@@ -12,7 +12,6 @@ import (
 	"dyc/internal/logger"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io"
@@ -89,52 +88,47 @@ func NewArticle(file string) (*Article, error) {
 	return &t, nil
 }
 
-// assert: douyacun.yml 配置的话题图片存储目录 dir: book所在目录
-func (a *Article) UploadImage(dir string) (err error) {
-	// 文章图片所在目录绝对路径
-	//assertAbs := fmt.Sprintf("/%s/%s", strings.Trim(dir, "/"), strings.Trim(assert, "/"))
-	imageDir := path.Join(dir)
-	// 图片服务存储目录
-	//storageDir := fmt.Sprintf("/%s/%s/%s", strings.Trim(config.Get().ImageDir, "/"), a.Key, strings.Trim(assert, "/"))
-	storageDir := path.Join(config.Get().ImageDir, a.Key)
+// bookDir: book所在目录
+// book图片存储目录 {topic}/{image}
+// 服务器图片存储目录 /images/{a.Key}/{topic}/{image}
+// 注意: 这里image topic为根目录，一般是 assert/a.jpg
+func (a *Article) UploadImage(bookDir string, topic string) (err error) {
+	// 图片前缀
+	imagePrefix := path.Join("/images", a.Key, topic)
+	// 图片服务存储目录, 去掉images，方便后面直接拼接images
+	storageDir := path.Dir(config.Get().ImageDir)
 	// 文章封面 -> 上传
 	if len(a.Cover) > 0 {
-		if err = os.MkdirAll(storageDir, 0755); err != nil {
-			return
+		if _, err = helper.Copy(path.Join(storageDir, imagePrefix, a.Cover), path.Join(bookDir, topic, a.Cover)); err != nil {
+			return fmt.Errorf("article %s 封面复制失败, %s", a.Title, err)
 		}
-		if _, err = helper.Copy(path.Join(storageDir, a.Cover), path.Join(imageDir, a.Cover)); err != nil {
-			return
-		}
-		a.Cover = path.Join("images", a.Key, "assert", a.Cover)
-		logger.Debugf("文章: %s 封面: %s", a.Title, a.Cover)
+		a.Cover = path.Join(imagePrefix, a.Cover)
+		logger.Debugf("article %s 封面复制成功: %s", a.Title, a.Cover)
 	} else {
 		a.Cover = ""
 	}
 	// markdown图片 -> 上传
 	matched, err := regexp.MatchString(consts.MarkDownImageRegex, a.Content)
 	if err != nil {
-		return errors.New(fmt.Sprintf("regexp match failed: %s", err))
+		return fmt.Errorf("regexp match failed: %s", err)
 	}
 	if matched {
-		if err = os.MkdirAll(storageDir, 0755); err != nil {
-			return err
-		}
 		re, _ := regexp.Compile(consts.MarkDownImageRegex)
 		for _, v := range re.FindAllStringSubmatch(a.Content, -1) {
 			filename := strings.Trim(v[2]+v[3], "/")
-			src := path.Join(imageDir, filename)
+			src := path.Join(bookDir, topic, filename)
 			// 替换文件image路径
-			rebuild := strings.ReplaceAll(v[0], v[2]+v[3], path.Join("images", a.Key, filename))
-			logger.Debugf("markdown 内部图片替换: %s -> %s", v[0], rebuild)
+			rebuild := strings.ReplaceAll(v[0], v[2]+v[3], path.Join(imagePrefix, filename))
+			logger.Debugf("article %s markdown image: %s -> %s", a.Title, v[0], rebuild)
 			// 服务器文件
-			dst := path.Join(storageDir, filename)
+			dst := path.Join(storageDir, imagePrefix, filename)
 			if !helper.FileExists(src) {
-				logger.Warnf("image(%s) not found(%s)", v[0], src)
+				logger.Warnf("article %s image %s not found(%s)", a.Title, v[0], src)
 			}
 			if _, err = helper.Copy(dst, src); err != nil {
-				return
+				return fmt.Errorf("article %s copy failed, %s", a.Title, err)
 			}
-			logger.Debugf("文章: %s 上传图片 src: %s -> dst: %s", a.Title, src, dst)
+			logger.Debugf("article %s upload src: %s -> dst: %s", a.Title, src, dst)
 			a.Content = strings.ReplaceAll(a.Content, v[0], rebuild)
 		}
 	}

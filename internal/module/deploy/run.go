@@ -40,8 +40,8 @@ func Run(dir string) {
 				// 数据完善
 				a.Complete(conf, topicTitle, file)
 				// 上传图片
-				if err = a.UploadImage(path.Join(dir, a.Topic)); err != nil {
-					logger.Errorf("图片上传失败: %s", err)
+				if err = a.UploadImage(dir, a.Topic); err != nil {
+					logger.Errorf("upload image: %s", err)
 					return
 				}
 				if err := a.Storage(); err != nil {
