@@ -72,7 +72,7 @@ func (*_Image) EncodeWebP(filepath string) (err error) {
 		return err
 	}
 	file.Close()
-	dst := fmt.Sprintf("%s/%s.webp", path.Dir(filepath), strings.TrimRight(path.Base(filepath), ext))
+	dst := strings.ReplaceAll(filepath, ext, ".webp")
 	if err = webp.Encode(&buf, img, &webp.Options{Lossless: false, Quality: 10}); err != nil {
 		return
 	}

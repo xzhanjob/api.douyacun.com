@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"dyc/internal/config"
 	"dyc/internal/initialize"
 	"dyc/internal/module/deploy"
 	"github.com/urfave/cli"
@@ -26,6 +27,7 @@ var Deploy = cli.Command{
 
 func deployAction(c *cli.Context) (err error) {
 	initialize.Loading(c.String("conf"))
+	config.SetRunMode(config.DebugMode)
 	deploy.Run(c.String("dir"))
 	return
 }

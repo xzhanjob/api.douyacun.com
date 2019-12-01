@@ -6,12 +6,12 @@ import (
 	"dyc/internal/db"
 	"dyc/internal/helper"
 	"dyc/internal/logger"
-	"dyc/internal/module/deploy"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/olivere/elastic/v7"
 	"path"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -32,10 +32,30 @@ type index struct {
 	Description  string    `json:"description"`
 	Topic        string    `json:"topic"`
 	Id           string    `json:"id"`
-	Cover        cover    `json:"cover"`
+	Cover        string    `json:"cover"`
 }
 
-func (*_post) List(ctx *gin.Context, page int) (int64, *[]index, error) {
+type view struct {
+	Title                    string    `json:"title"`
+	Keywords                 string    `json:"keywords"`
+	Label                    string    `json:"label"`
+	Cover                    string    `json:"cover"`
+	Description              string    `json:"description"`
+	Author                   string    `json:"author"`
+	Date                     time.Time `json:"date"`
+	LastEditTime             time.Time `json:"last_edit_time"`
+	Content                  string    `json:"content"`
+	Email                    string    `json:"email"`
+	Github                   string    `json:"github"`
+	Key                      string    `json:"key"`
+	ID                       string    `json:"id"`
+	Topic                    string    `json:"topic"`
+	FilePath                 string    `json:"-"`
+	WechatSubscriptionQrcode string    `json:"wechat_subscription_qrcode"`
+	WechatSubscription       string    `json:"wechat_subscription"`
+}
+
+func (*_post) List(ctx *gin.Context, page int) (int64, []index, error) {
 	skip := (page - 1) * PageSize
 	var (
 		data index
@@ -57,32 +77,58 @@ func (*_post) List(ctx *gin.Context, page int) (int64, *[]index, error) {
 	for k, item := range searchResult.Each(reflect.TypeOf(data)) {
 		tmp := item.(index)
 		tmp.Id = searchResult.Hits.Hits[k].Id
+		tmp.Cover = Post.ConvertWebp(ctx, tmp.Cover)
 		res = append(res, tmp)
 	}
-	return searchResult.TotalHits(), &res, nil
+	return searchResult.TotalHits(), res, nil
 }
 
-func (*_post) View(id string) (*deploy.Article, error) {
+func (*_post) View(ctx *gin.Context, id string) (*view, error) {
 	resp, err := db.ES.Get().Index(consts.TopicCost).Id(id).Do(context.Background())
 	if err != nil {
 		return nil, nil
 	}
-	var data deploy.Article
+	var data view
 	if err = json.Unmarshal(resp.Source, &data); err != nil {
 		return nil, err
 	}
 	if resp.Source == nil {
 		return nil, nil
 	}
+	data.Cover = Post.ConvertWebp(ctx, data.Cover)
+	data.WechatSubscriptionQrcode = Post.ConvertWebp(ctx, data.WechatSubscriptionQrcode)
+	data.Content = Post.ConvertContentWebP(ctx, data.Content)
 	logger.Debugf("%s", resp.Id)
 	return &data, nil
 }
 
-type cover string
-
-func (c *cover) Convert(ctx *gin.Context) {
-	ext := path.Ext(string(*c))
+func (*_post) ConvertWebp(ctx *gin.Context, image string) string {
+	ext := path.Ext(image)
 	if helper.Image.WebPSupportExt(ext) {
-		*c = cover(strings.Replace(string(*c), ext, ".webp", 1))
+		ua := ctx.Request.UserAgent()
+		if strings.Contains(ua, "Chrome") || strings.Contains(ua, "Android") {
+			return strings.Replace(image, ext, ".webp", 1)
+		}
 	}
+	return image
+}
+
+func (c *_post) ConvertContentWebP(ctx *gin.Context, content string) string {
+	matched, err := regexp.MatchString(consts.MarkDownImageRegex, content)
+	if err != nil {
+		return content
+	}
+	if matched {
+		re, _ := regexp.Compile(consts.MarkDownImageRegex)
+		for _, v := range re.FindAllStringSubmatch(content, -1) {
+			filename := v[2] + v[3]
+			WebP := Post.ConvertWebp(ctx, filename)
+			if WebP != filename {
+				// 替换文件image路径
+				rebuild := strings.ReplaceAll(v[0], v[2]+v[3], WebP)
+				content = strings.ReplaceAll(content, v[0], rebuild)
+			}
+		}
+	}
+	return content
 }

@@ -50,7 +50,7 @@ func (*_article) Labels(c *gin.Context) {
 
 func (*_article) View(c *gin.Context) {
 	id := c.Param("id")
-	data, err := article.Post.View(id)
+	data, err := article.Post.View(c, id)
 	if err != nil {
 		logger.Errorf("%s", err)
 		helper.Fail(c, errors.New("服务器出错了"))
