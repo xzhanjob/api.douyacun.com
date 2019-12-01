@@ -99,7 +99,7 @@ func (a *Article) UploadImage(bookDir string, topic string) (err error) {
 	storageDir := path.Dir(config.Get().ImageDir)
 	// 文章封面 -> 上传
 	if len(a.Cover) > 0 {
-		if _, err = helper.Copy(path.Join(storageDir, imagePrefix, a.Cover), path.Join(bookDir, topic, a.Cover)); err != nil {
+		if _, err = helper.File.Copy(path.Join(storageDir, imagePrefix, a.Cover), path.Join(bookDir, topic, a.Cover)); err != nil {
 			return fmt.Errorf("article %s 封面复制失败, %s", a.Title, err)
 		}
 		a.Cover = path.Join(imagePrefix, a.Cover)
@@ -122,10 +122,10 @@ func (a *Article) UploadImage(bookDir string, topic string) (err error) {
 			logger.Debugf("article %s markdown image: %s -> %s", a.Title, v[0], rebuild)
 			// 服务器文件
 			dst := path.Join(storageDir, imagePrefix, filename)
-			if !helper.FileExists(src) {
+			if !helper.File.IsFile(src) {
 				logger.Warnf("article %s image %s not found(%s)", a.Title, v[0], src)
 			}
-			if _, err = helper.Copy(dst, src); err != nil {
+			if _, err = helper.File.Copy(dst, src); err != nil {
 				return fmt.Errorf("article %s copy failed, %s", a.Title, err)
 			}
 			logger.Debugf("article %s upload src: %s -> dst: %s", a.Title, src, dst)

@@ -8,7 +8,7 @@ import (
 )
 
 func ChildAlreadyRunning(filePath string) (pid int, running bool) {
-	if !helper.FileExists(filePath) {
+	if !helper.File.IsFile(filePath) {
 		return pid, false
 	}
 	pid, err := daemon.ReadPidFile(filePath)

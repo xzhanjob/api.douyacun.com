@@ -40,7 +40,7 @@ func LoadConfig(dir string) (*Conf, error) {
 	configFile := path.Join(dir, "douyacun.yml")
 	conf.Root = dir
 	logger.Debugf("配置文件路径: %s", configFile)
-	if !helper.FileExists(configFile) {
+	if !helper.File.IsFile(configFile) {
 		return nil, errors.New("请先配置douyaucn.yaml")
 	}
 	b, err := ioutil.ReadFile(configFile)
@@ -64,7 +64,7 @@ func (c *Conf) UploadQrcode(dir string) (err error) {
 	src := fmt.Sprintf("/%s/%s", strings.Trim(dir, "/"), strings.Trim(c.WechatSubscriptionQrcode, "/"))
 	dst := fmt.Sprintf("/%s/%s/%s", strings.Trim(config.Get().ImageDir, "/"), c.Key, strings.Trim(c.WechatSubscriptionQrcode, "/"))
 	logger.Debugf("上传二维码 src: %s -> dst: %s", src, dst)
-	_, err = helper.Copy(dst, src)
+	_, err = helper.File.Copy(dst, src)
 	if err != nil {
 		return err
 	}

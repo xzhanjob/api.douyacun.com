@@ -54,7 +54,7 @@ func startAction(c *cli.Context) (err error) {
 			return nil
 		}
 		if child != nil {
-			if !helper.FileOverwrite(config.Get().PidFile, []byte(strconv.Itoa(child.Pid))) {
+			if !helper.File.FileOverwrite(config.Get().PidFile, []byte(strconv.Itoa(child.Pid))) {
 				log.Printf("failed writing process id to \"%s\"", config.Get().PidFile)
 				return nil
 			}
