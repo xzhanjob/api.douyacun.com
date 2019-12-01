@@ -1,8 +1,8 @@
 package deploy
 
 import (
-	"dyc/internal/config"
 	"dyc/internal/helper"
+	"dyc/internal/initialize"
 	"dyc/internal/logger"
 	"errors"
 	"fmt"
@@ -57,12 +57,12 @@ func LoadConfig(dir string) (*Conf, error) {
 //
 func (c *Conf) UploadQrcode(dir string) (err error) {
 	// 服务器存储目录
-	storageDir := fmt.Sprintf("/%s/%s/%s", strings.Trim(config.Get().ImageDir, "/"), c.Key, filepath.Dir(c.WechatSubscriptionQrcode))
+	storageDir := fmt.Sprintf("/%s/%s/%s", strings.Trim(initialize.Config.Get().ImageDir, "/"), c.Key, filepath.Dir(c.WechatSubscriptionQrcode))
 	if err = os.MkdirAll(storageDir, 0755); err != nil {
 		return err
 	}
 	src := fmt.Sprintf("/%s/%s", strings.Trim(dir, "/"), strings.Trim(c.WechatSubscriptionQrcode, "/"))
-	dst := fmt.Sprintf("/%s/%s/%s", strings.Trim(config.Get().ImageDir, "/"), c.Key, strings.Trim(c.WechatSubscriptionQrcode, "/"))
+	dst := fmt.Sprintf("/%s/%s/%s", strings.Trim(initialize.Config.Get().ImageDir, "/"), c.Key, strings.Trim(c.WechatSubscriptionQrcode, "/"))
 	logger.Debugf("上传二维码 src: %s -> dst: %s", src, dst)
 	_, err = helper.File.Copy(dst, src)
 	if err != nil {

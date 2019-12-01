@@ -5,10 +5,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
-	"dyc/internal/config"
 	"dyc/internal/consts"
 	"dyc/internal/db"
 	"dyc/internal/helper"
+	"dyc/internal/initialize"
 	"dyc/internal/logger"
 	"encoding/hex"
 	"encoding/json"
@@ -96,7 +96,7 @@ func (a *Article) UploadImage(bookDir string, topic string) (err error) {
 	// 图片前缀
 	imagePrefix := path.Join("/images", a.Key, topic)
 	// 图片服务存储目录, 去掉images，方便后面直接拼接images
-	storageDir := path.Dir(config.Get().ImageDir)
+	storageDir := path.Dir(initialize.Config.Get().ImageDir)
 	// 文章封面 -> 上传
 	if len(a.Cover) > 0 {
 		if _, err = helper.File.Copy(path.Join(storageDir, imagePrefix, a.Cover), path.Join(bookDir, topic, a.Cover)); err != nil {

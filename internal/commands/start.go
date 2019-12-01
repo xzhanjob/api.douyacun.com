@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"dyc/internal/config"
 	"dyc/internal/helper"
 	"dyc/internal/initialize"
 	"github.com/sevlyar/go-daemon"
@@ -32,19 +31,19 @@ var Start = cli.Command{
 func startAction(c *cli.Context) (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	// 加载配置文件
-	config.NewConfig(c.String("conf"))
+	initialize.Config.Init(c.String("conf"))
 	// 设置运行环境
-	config.SetRunMode(config.Get().RunMode)
+	initialize.Config.SetRunMode(initialize.Config.Get().RunMode)
 
 	dmn := &daemon.Context{
-		PidFileName: config.Get().PidFile,
+		PidFileName: initialize.Config.Get().PidFile,
 		LogFileName: "",
 	}
 	dmn.Args = c.Args()
 
-	if !daemon.WasReborn() && config.IsDaemon() {
+	if !daemon.WasReborn() && initialize.Config.IsDaemon() {
 		cancel()
-		if pid, ok := initialize.ChildAlreadyRunning(config.Get().PidFile); ok {
+		if pid, ok := initialize.ChildAlreadyRunning(initialize.Config.Get().PidFile); ok {
 			log.Printf("daemon already running with process id %v", pid)
 			return nil
 		}
@@ -54,8 +53,8 @@ func startAction(c *cli.Context) (err error) {
 			return nil
 		}
 		if child != nil {
-			if !helper.File.FileOverwrite(config.Get().PidFile, []byte(strconv.Itoa(child.Pid))) {
-				log.Printf("failed writing process id to \"%s\"", config.Get().PidFile)
+			if !helper.File.FileOverwrite(initialize.Config.Get().PidFile, []byte(strconv.Itoa(child.Pid))) {
+				log.Printf("failed writing process id to \"%s\"", initialize.Config.Get().PidFile)
 				return nil
 			}
 			log.Printf("daemon started with process id %v\n", child.Pid)

@@ -1,8 +1,10 @@
 package commands
 
 import (
-	"dyc/internal/config"
+	"dyc/internal/consts"
+	"dyc/internal/db"
 	"dyc/internal/initialize"
+	"dyc/internal/logger"
 	"dyc/internal/module/deploy"
 	"github.com/urfave/cli"
 )
@@ -26,8 +28,15 @@ var Deploy = cli.Command{
 }
 
 func deployAction(c *cli.Context) (err error) {
-	initialize.Loading(c.String("conf"))
-	config.SetRunMode(config.DebugMode)
+	// 加载配置文件
+	initialize.Config.Init(c.String("conf"))
+	// 设置运行环境
+	initialize.Config.SetRunMode(initialize.Config.Get().RunMode)
+	logger.NewLogger(initialize.Config.GetLogFD())
+	logger.SetLevel(consts.DebugMode)
+	// 数据库
+	db.NewElasticsearch(initialize.Config.Get().ElasticsearchAddress)
+	initialize.Config.SetRunMode(consts.DebugMode)
 	deploy.Run(c.String("dir"))
 	return
 }

@@ -2,54 +2,46 @@ package initialize
 
 import (
 	"context"
-	"dyc/internal/config"
 	"dyc/internal/controllers"
 	"dyc/internal/db"
 	"dyc/internal/logger"
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
 )
 
 func Server(ctx context.Context) {
 	var (
 		engine *gin.Engine
-		err    error
 	)
 	// 日志
-	fp, err := writer()
-	if err != nil {
-		log.Fatalf("log file writer: %s", err)
-	}
-	defer fp.Close()
-	logger.NewLogger(fp)
+	logger.NewLogger(Config.GetLogFD())
 	// 数据库
-	db.NewElasticsearch(config.Get().ElasticsearchAddress)
+	db.NewElasticsearch(Config.Get().ElasticsearchAddress)
 	defer shutdown()
 	// 启动gin
-	if config.IsRelease() {
-		logger.SetLevel(config.Get().RunMode)
+	if Config.IsRelease() {
+		logger.SetLevel(Config.Get().RunMode)
 		gin.SetMode(gin.ReleaseMode)
 		engine = gin.New()
-		engine.Use(gin.RecoveryWithWriter(fp))
+		engine.Use(gin.RecoveryWithWriter(Config.GetLogFD()))
 	} else {
-		logger.SetLevel(config.Get().RunMode)
+		logger.SetLevel(Config.Get().RunMode)
 		engine = gin.New()
 		engine.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 			Formatter: logger.GinLogFormatter,
-			Output:    fp,
+			Output:    Config.GetLogFD(),
 			SkipPaths: nil,
-		}), gin.RecoveryWithWriter(fp))
+		}), gin.RecoveryWithWriter(Config.GetLogFD()))
 	}
 	// 路由
 	controllers.NewRouter(engine)
 	server := http.Server{
-		Addr:     config.Get().Port,
+		Addr:     Config.Get().Port,
 		Handler:  engine,
 		ErrorLog: nil,
 	}
 	go func() {
-		logger.Debugf("start server 127.0.0.1%s", config.Get().Port)
+		logger.Debugf("start server 127.0.0.1%s", Config.Get().Port)
 		_ = server.ListenAndServe()
 	}()
 	<-ctx.Done()
