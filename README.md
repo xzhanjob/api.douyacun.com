@@ -52,12 +52,23 @@ LastEditTime: 2019-10-09 14:36:06
 }
 ```
 
+# 图片转webp，实现压缩
+目前webp支持，chrome和android webview支持比较好
+```golang
+if helper.Image.WebPSupportExt(ext) {
+    ua := ctx.Request.UserAgent()
+    if strings.Contains(ua, "Chrome") || strings.Contains(ua, "Android") {
+        return strings.Replace(image, ext, ".webp", 1)
+    }
+}
+```
+
 # todo
 - [ ] markdown 本地跳转, 1-go-cannel.md
 - [ ] 封面功能，配置没有文件，取文档第一张图片作为封面
-- [ ] 图片转webp格式，实现图片压缩功能
-- [ ] 增加debug功能
-- [x] git提取文件创建时间
+- [x] 图片转webp格式，实现图片压缩功能
+- [x] 部署文章时, 开启debug模式
+- [x] git提取文件创建时间，见helper.Git.LogFileLastCommitTime()
 - [x] 文章关键词提取
 - [x] travis ci 自动部署
 - [x] 图片提取
