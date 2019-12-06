@@ -66,6 +66,7 @@ if helper.Image.WebPSupportExt(ext) {
 # todo
 - [ ] markdown 本地跳转, 1-go-cannel.md
 - [ ] 封面功能，配置没有文件，取文档第一张图片作为封面
+- [ ] 没有描述的话，取文章前25个字作为描述，过滤掉`[TOC]`
 - [x] 图片转webp格式，实现图片压缩功能
 - [x] 部署文章时, 开启debug模式
 - [x] git提取文件创建时间，见helper.Git.LogFileLastCommitTime()
