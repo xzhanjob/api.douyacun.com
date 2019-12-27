@@ -10,8 +10,10 @@ import (
 	"dyc/internal/helper"
 	"dyc/internal/initialize"
 	"dyc/internal/logger"
+	"dyc/internal/module/article"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io"
@@ -97,39 +99,79 @@ func (a *Article) UploadImage(bookDir string, topic string) (err error) {
 	imagePrefix := path.Join("/images", a.Key, topic)
 	// 图片服务存储目录, 去掉images，方便后面直接拼接images
 	storageDir := path.Dir(initialize.Config.Get().ImageDir)
+	var errTemplate = func(s string) error {
+		return fmt.Errorf("《%s》: %s", a.Title, s)
+	}
+	var debugTemplate = func(s string) {
+		logger.Debugf("《%s》: %s", a.Title, s)
+	}
+	var warnTemplate = func(s string) {
+		logger.Debugf("《%s》: %s", a.Title, s)
+	}
 	// 文章封面 -> 上传
 	if len(a.Cover) > 0 {
 		if _, err = helper.File.Copy(path.Join(storageDir, imagePrefix, a.Cover), path.Join(bookDir, topic, a.Cover)); err != nil {
 			return fmt.Errorf("article %s 封面复制失败, %s", a.Title, err)
 		}
 		a.Cover = path.Join(imagePrefix, a.Cover)
-		logger.Debugf("article %s 封面复制成功: %s", a.Title, a.Cover)
+		debugTemplate(fmt.Sprintf("封面复制成功: %s", a.Cover))
 	} else {
 		a.Cover = ""
 	}
 	// markdown图片 -> 上传
 	matched, err := regexp.MatchString(consts.MarkDownImageRegex, a.Content)
 	if err != nil {
-		return fmt.Errorf("regexp match failed: %s", err)
+		return errTemplate(fmt.Sprintf("regexp match failed: %s", err))
 	}
 	if matched {
-		re, _ := regexp.Compile(consts.MarkDownImageRegex)
+		re, err := regexp.Compile(consts.MarkDownImageRegex)
+		if err != nil {
+			return errTemplate(fmt.Sprintf("regex compile faile: %s", err))
+		}
 		for _, v := range re.FindAllStringSubmatch(a.Content, -1) {
 			filename := strings.Trim(v[2]+v[3], "/")
 			src := path.Join(bookDir, topic, filename)
 			// 替换文件image路径
 			rebuild := strings.ReplaceAll(v[0], v[2]+v[3], path.Join(imagePrefix, filename))
-			logger.Debugf("article %s markdown image: %s -> %s", a.Title, v[0], rebuild)
+			debugTemplate(fmt.Sprintf("image: %s -> %s", v[0], rebuild))
 			// 服务器文件
 			dst := path.Join(storageDir, imagePrefix, filename)
 			if !helper.File.IsFile(src) {
-				logger.Warnf("article %s image %s not found(%s)", a.Title, v[0], src)
+				warnTemplate(fmt.Sprintf("image %s not found(%s)", v[0], src))
 			}
 			if _, err = helper.File.Copy(dst, src); err != nil {
-				return fmt.Errorf("article %s copy failed, %s", a.Title, err)
+				return errTemplate(fmt.Sprintf("image copy failed, %s", err))
 			}
-			logger.Debugf("article %s upload src: %s -> dst: %s", a.Title, src, dst)
+			debugTemplate(fmt.Sprintf("image upload src: %s -> dst: %s", src, dst))
 			a.Content = strings.ReplaceAll(a.Content, v[0], rebuild)
+		}
+	}
+	// 本地文件跳转
+	mathchLocal, err := regexp.MatchString(consts.MarkDownLocalJump, a.Content)
+	if err != nil {
+		return errTemplate(fmt.Sprintf("regex(%s) match string failed: %s", consts.MarkDownLocalJump, err))
+	}
+	if mathchLocal {
+		re, err := regexp.Compile(consts.MarkDownLocalJump)
+		if err != nil {
+			return errTemplate(fmt.Sprintf("regex(%s) compile failed: %s", consts.MarkDownLocalJump, err))
+		}
+		for _, v := range re.FindAllStringSubmatch(a.Content, -1) {
+			// 目标文件
+			target := v[1]
+			// 话题 以顶层目录为话题
+			if path.IsAbs(target) { // 绝对路径
+				// 判断目标文件是否存在
+				targetTopic := helper.File.TopDir(target)
+				if targetTopic == "" {
+					warnTemplate("本地文件跳转，目标文件一级目录不存在，暂不支持跳转")
+				}
+				targetFileName := path.Base(target)
+				targetID := article.Post.GenerateId(targetTopic, a.Key, targetFileName)
+				targetUrl := fmt.Sprintf("/article/%s", targetID)
+
+			} else { // 相对路径
+			}
 		}
 	}
 	return
@@ -165,9 +207,7 @@ func (a *Article) Complete(c *Conf, topicTitle string, fileName string) {
 	a.WechatSubscriptionQrcode = c.WechatSubscriptionQrcode
 	a.Topic = strings.ToLower(topicTitle)
 	a.Key = c.Key
-	// 1. git读取文章的创建时间和修改时间
-	// 拼接文章id md5(user.key-topic-文件名称)
-	a.ID = hex.EncodeToString(md5.New().Sum([]byte(fmt.Sprintf("%s-%s-%s", a.Topic, a.Key, fileName))))
+	a.ID = article.Post.GenerateId(a.Topic, a.Key, fileName)
 }
 
 // 存储文章

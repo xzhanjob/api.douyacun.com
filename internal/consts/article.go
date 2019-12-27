@@ -81,4 +81,5 @@ const (
 }`
 	TopicCost          = "articles"
 	MarkDownImageRegex = `!\[(.*)\]\((.*)(.png|.gif|.jpg|.jpeg)(.*)\)`
+	MarkDownLocalJump  = `\[.*\]\((\.?\/?(\w+\/?)+\.md).*\)`
 )
