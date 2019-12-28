@@ -1,10 +1,12 @@
 package helper
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"path"
+	"strings"
 )
 
 var File _File
@@ -46,6 +48,7 @@ func (*_File) Copy(dst, src string) (int64, error) {
 	nBytes, err := io.Copy(destination, source)
 	return nBytes, err
 }
+
 // 判断目录是否存在，是否为目录
 func (*_File) IsDir(dir string) bool {
 	fi, err := os.Stat(dir)
@@ -56,4 +59,33 @@ func (*_File) IsDir(dir string) bool {
 		return true
 	}
 	return false
+}
+
+func (*_File) TopDir(p string) string {
+	b := bytes.NewBuffer(nil)
+	if path.Dir(p) != "/" && path.Dir(p) != "." {
+		if path.IsAbs(p) {
+			n := 0
+			for _, v := range p {
+				if v == '/' {
+					if n == 1 {
+						break
+					} else {
+						n = 1
+					}
+				} else {
+					b.WriteByte(byte(v))
+				}
+			}
+		} else {
+			for _, v := range strings.TrimLeft(p, "./") {
+				if v == '/' {
+					break
+				} else {
+					b.WriteByte(byte(v))
+				}
+			}
+		}
+	}
+	return b.String()
 }

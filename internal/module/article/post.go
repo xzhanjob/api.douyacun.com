@@ -2,11 +2,14 @@ package article
 
 import (
 	"context"
+	"crypto/md5"
 	"dyc/internal/consts"
 	"dyc/internal/db"
 	"dyc/internal/helper"
 	"dyc/internal/logger"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/olivere/elastic/v7"
 	"path"
@@ -131,4 +134,9 @@ func (c *_post) ConvertContentWebP(ctx *gin.Context, content string) string {
 		}
 	}
 	return content
+}
+
+// 拼接文章id md5(user.key-topic-文件名称)
+func (c *_post) GenerateId(topic, key, filename string) string {
+	return hex.EncodeToString(md5.New().Sum([]byte(fmt.Sprintf("%s-%s-%s", topic, key, filename))))
 }
