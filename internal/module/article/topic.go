@@ -1,44 +1,66 @@
 package article
 
 import (
-	"context"
+	"bytes"
 	"dyc/internal/consts"
 	"dyc/internal/db"
-	"dyc/internal/helper"
-	"github.com/olivere/elastic/v7"
-	"reflect"
+	"encoding/json"
+	"github.com/pkg/errors"
+	"io/ioutil"
 )
 
 var Topics _topic
 
 type _topic struct{}
 
-func (*_topic) List(topic string, page int) (int64, *[]index, error) {
+func (*_topic) List(topic string, page int) (total int64, data []interface{}, err error) {
 	var (
-		data index
-		res  = make([]index, 0, PageSize)
+		buf bytes.Buffer
+		r   map[string]interface{}
 	)
+	data = make([]interface{}, 0)
 	skip := (page - 1) * PageSize
-	fields := helper.GetStructJsonTag(data)
-	tq := elastic.NewTermQuery("topic", topic)
-	_source := elastic.NewSearchSource().
-		Query(tq).
-		FetchSource(true).
-		FetchSourceIncludeExclude(fields, nil).
-		Sort("last_edit_time", false)
-	searchResult, err := db.ES.Search().
-		Index(consts.TopicCost).
-		SearchSource(_source).
-		From(skip).
-		Size(PageSize).
-		Do(context.Background())
+	query := map[string]interface{}{
+		"from": skip,
+		"size": PageSize,
+		"sort": map[string]interface{}{
+			"last_edit_time": map[string]interface{}{
+				"order": "desc",
+			},
+		},
+		"query": map[string]interface{}{
+			"term": map[string]interface{}{
+				"topic.keyword": map[string]interface{}{
+					"value": topic,
+				},
+			},
+		},
+		"_source": []string{"author", "title", "description", "topic", "id", "cover"},
+	}
+	if err = json.NewEncoder(&buf).Encode(query); err != nil {
+		panic(errors.Wrap(err, "json encode错误"))
+	}
+
+	res, err := db.ES.Search(
+		db.ES.Search.WithIndex(consts.TopicCost),
+		db.ES.Search.WithBody(&buf),
+	)
+	defer res.Body.Close()
 	if err != nil {
-		return 0, nil, err
+		panic(errors.Wrap(err, "es search错误"))
 	}
-	for k, item := range searchResult.Each(reflect.TypeOf(data)) {
-		tmp := item.(index)
-		tmp.Id = searchResult.Hits.Hits[k].Id
-		res = append(res, tmp)
+	if res.IsError() {
+		resp, _ := ioutil.ReadAll(res.Body)
+		panic(errors.New(string(resp)))
 	}
-	return searchResult.TotalHits(), &res, nil
+	if err = json.NewDecoder(res.Body).Decode(&r); err != nil {
+		panic(errors.Wrap(err, "json decode 错误"))
+	}
+
+	total = int64(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64))
+
+	for _, v := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
+		data = append(data, v.(map[string]interface{})["_source"])
+	}
+	return
 }

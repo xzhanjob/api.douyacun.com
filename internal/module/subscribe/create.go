@@ -1,8 +1,11 @@
 package subscribe
 
 import (
-	"context"
 	"dyc/internal/db"
+	"fmt"
+	"github.com/pkg/errors"
+	"io/ioutil"
+	"strings"
 	"time"
 )
 
@@ -16,10 +19,20 @@ type _subscriber struct {
 }
 
 func (s *_subscriber) Store(email string) error {
-	s.Email = email
-	_, err := db.ES.Index().Index(SubscriberIndex).BodyJson(s).Do(context.Background())
+	res, err := db.ES.Index(
+		SubscriberIndex,
+		strings.NewReader(fmt.Sprintf(`{
+		  "email": "%s",
+		  "date": "%s",
+		}`, email, time.Now())),
+	)
+	defer res.Body.Close()
 	if err != nil {
-		return err
+		panic(errors.Wrap(err, "es 写入错误"))
+	}
+	if res.IsError() {
+		resp, _ := ioutil.ReadAll(res.Body)
+		panic(errors.New(string(resp)))
 	}
 	return nil
 }

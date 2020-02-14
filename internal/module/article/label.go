@@ -1,13 +1,11 @@
 package article
 
 import (
-	"context"
+	"bytes"
 	"dyc/internal/consts"
 	"dyc/internal/db"
-	"dyc/internal/helper"
-	"dyc/internal/logger"
-	"github.com/olivere/elastic/v7"
-	"reflect"
+	"encoding/json"
+	"github.com/pkg/errors"
 )
 
 var Label _labels
@@ -16,27 +14,47 @@ type _labels struct {
 	Label string `yaml:"label" json:"label"`
 }
 
-func (*_labels) List(size int) (l *[]string, err error) {
+func (*_labels) List(size int) (data []string, err error) {
 	var (
-		data _labels
-		res  = make([]string, 0, size)
+		buf bytes.Buffer
+		r map[string]interface{}
 	)
-	q := elastic.NewBoolQuery().Filter(elastic.NewScriptQuery(elastic.NewScript(`doc['label'].size() > 0`)))
-	_source := elastic.NewSearchSource().Query(q).
-		FetchSource(true).
-		FetchSourceIncludeExclude(helper.GetStructJsonTag(data), nil)
-	searchResult, err := db.ES.Search().
-		Index(consts.TopicCost).
-		SearchSource(_source).
-		From(0).
-		Size(size).
-		Do(context.Background())
-	logger.Debugf("%s", searchResult.Hits.Hits[0].Source)
+	query := map[string]interface{}{
+		"_source": []string{"label"},
+		"size": size,
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"filter": map[string]interface{}{
+					"script": map[string]interface{}{
+						"script": map[string]interface{}{
+							"source": "doc['label'].size() > 0",
+						},
+					},
+				},
+			},
+		},
+	}
+	err = json.NewEncoder(&buf).Encode(query)
 	if err != nil {
-		return nil, err
+		panic(errors.Wrap(err, "json encode错误"))
 	}
-	for _, item := range searchResult.Each(reflect.TypeOf(data)) {
-		res = append(res, item.(_labels).Label)
+
+	res, err := db.ES.Search(
+		db.ES.Search.WithIndex(consts.TopicCost),
+		db.ES.Search.WithBody(&buf),
+	)
+	defer res.Body.Close()
+	if res.IsError() {
+		panic(errors.Wrap(err, "es 查询错误"))
 	}
-	return &res, nil
+
+	err = json.NewDecoder(res.Body).Decode(&r)
+	if err != nil {
+		panic(errors.Wrap(err, "json decode错误"))
+	}
+
+	for _, v := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
+		data = append(data, v.(map[string]interface{})["_source"].(map[string]interface{})["label"].(string))
+	}
+	return data, nil
 }

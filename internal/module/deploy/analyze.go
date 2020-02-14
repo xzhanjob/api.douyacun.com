@@ -3,7 +3,6 @@ package deploy
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"dyc/internal/consts"
 	"dyc/internal/db"
 	"dyc/internal/helper"
@@ -11,9 +10,11 @@ import (
 	"dyc/internal/logger"
 	"dyc/internal/module/article"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
@@ -241,18 +242,22 @@ func (a *Article) Complete(c *Conf, topicTitle string, fileName string) {
 }
 
 // 存储文章
-func (a *Article) Storage() error {
-	s, err := json.MarshalIndent(a, "", "\t")
-	if err != nil {
-		return err
+func (a *Article) Storage() (err error) {
+	var buf bytes.Buffer
+	if err = json.NewEncoder(&buf).Encode(a); err != nil {
+		return
 	}
-	_, err = db.ES.Index().
-		Index(consts.TopicCost).
-		BodyJson(string(s)).
-		Id(a.ID).
-		Do(context.Background())
+	res, err := db.ES.Index(
+		consts.TopicCost,
+		strings.NewReader(buf.String()),
+	)
+	defer res.Body.Close()
 	if err != nil {
-		return err
+		return
+	}
+	if res.IsError() {
+		resp, _ := ioutil.ReadAll(res.Body)
+		return errors.New(string(resp))
 	}
 	return nil
 }

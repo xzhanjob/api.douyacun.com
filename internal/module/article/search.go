@@ -1,12 +1,12 @@
 package article
 
 import (
-	"context"
+	"bytes"
 	"dyc/internal/consts"
 	"dyc/internal/db"
-	"dyc/internal/helper"
-	"github.com/olivere/elastic/v7"
-	"reflect"
+	"encoding/json"
+	"github.com/pkg/errors"
+	"io/ioutil"
 	"time"
 )
 
@@ -23,30 +23,48 @@ type _search struct {
 	Highlight    []string  `json:"highlight"`
 }
 
-func (*_search) List(q string) (int64, *[]_search, error) {
+func (*_search) List(q string) (total int64, data []interface{}, err error) {
 	var (
-		data _search
-		res  = make([]_search, 0, 10)
+		buf bytes.Buffer
+		r   map[string]interface{}
 	)
-	_source := elastic.NewSearchSource().
-		Highlight(elastic.NewHighlight().Field("content")).
-		Query(elastic.NewMultiMatchQuery(q, "title", "content", "author", "keywords")).
-		FetchSource(true).
-		FetchSourceIncludeExclude(helper.GetStructJsonTag(data), nil)
-	searchResult, err := db.ES.Search().
-		Index(consts.TopicCost).
-		SearchSource(_source).
-		From(0).
-		Size(10).
-		Do(context.Background())
+	data = make([]interface{}, 0)
+	query := map[string]interface{}{
+		"_source": []string{"author", "title", "description", "topic", "id", "date", "last_edit_time"},
+		"query": map[string]interface{}{
+			"multi_match": map[string]interface{}{
+				"query":  q,
+				"fields": []string{"title.keyword", "author", "keywords", "content", "label"},
+			},
+		},
+		"highlight": map[string]interface{}{
+			"fields": map[string]interface{}{
+				"content": map[string]interface{}{},
+			},
+		},
+	}
+	if err = json.NewEncoder(&buf).Encode(query); err != nil {
+		panic(errors.Wrap(err, "json encode 错误"))
+	}
+	res, err := db.ES.Search(
+		db.ES.Search.WithIndex(consts.TopicCost),
+		db.ES.Search.WithBody(&buf),
+	)
+	defer res.Body.Close()
 	if err != nil {
-		return 0, nil, err
+		panic(errors.Wrap(err, "es search错误"))
 	}
-	for k, item := range searchResult.Each(reflect.TypeOf(data)) {
-		tmp := item.(_search)
-		tmp.Id = searchResult.Hits.Hits[k].Id
-		tmp.Highlight = searchResult.Hits.Hits[k].Highlight["content"]
-		res = append(res, tmp)
+	if res.IsError() {
+		resp, _ := ioutil.ReadAll(res.Body)
+		panic(errors.New(string(resp)))
 	}
-	return searchResult.TotalHits(), &res, nil
+	if err = json.NewDecoder(res.Body).Decode(&r); err != nil {
+		panic(errors.Wrap(err, "json decode 错误"))
+	}
+	for _, v := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
+		tmp := v.(map[string]interface{})["_source"].(map[string]interface{})
+		tmp["highlight"] = v.(map[string]interface{})["highlight"].(map[string]interface{})["content"]
+		data = append(data, tmp)
+	}
+	return
 }

@@ -1,29 +1,40 @@
 package db
 
 import (
-	"github.com/olivere/elastic/v7"
+	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 	"sync"
 )
 
-var ES *elastic.Client
+var ES *elasticsearch.Client
 var es_once sync.Once
 
 func NewElasticsearch(address []string) {
 	var err error
 	es_once.Do(func() {
-		ES, err = elastic.NewClient(elastic.SetURL(address...), elastic.SetSniff(false))
+		cfg := elasticsearch.Config{
+			Addresses: address,
+			Username:              "",
+			Password:              "",
+			CloudID:               "",
+			APIKey:                "",
+			RetryOnStatus:         nil,
+			DisableRetry:          false,
+			EnableRetryOnTimeout:  false,
+			MaxRetries:            0,
+			DiscoverNodesOnStart:  false,
+			DiscoverNodesInterval: 0,
+			EnableMetrics:         false,
+			EnableDebugLogger:     false,
+			RetryBackoff:          nil,
+			Transport:             nil,
+			Logger:                nil,
+			Selector:              nil,
+			ConnectionPoolFunc:    nil,
+		}
+		ES, err = elasticsearch.NewClient(cfg)
 		if err != nil {
 			panic(err)
 		}
 	})
 }
 
-func NewElasticsearchDefault()  {
-	var err error
-	es_once.Do(func() {
-		ES, err = elastic.NewClient(elastic.SetURL("http://192.168.1.2:9200"), elastic.SetSniff(false))
-		if err != nil {
-			panic(err)
-		}
-	})
-}

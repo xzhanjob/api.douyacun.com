@@ -1,19 +1,18 @@
 package article
 
 import (
-	"context"
+	"bytes"
 	"crypto/md5"
 	"dyc/internal/consts"
 	"dyc/internal/db"
 	"dyc/internal/helper"
-	"dyc/internal/logger"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/olivere/elastic/v7"
+	"github.com/pkg/errors"
+	"io/ioutil"
 	"path"
-	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -26,17 +25,6 @@ var (
 )
 
 type _post struct{}
-
-type index struct {
-	Author       string    `json:"author"`
-	Date         time.Time `json:"date"`
-	LastEditTime time.Time `json:"last_edit_time"`
-	Title        string    `json:"title"`
-	Description  string    `json:"description"`
-	Topic        string    `json:"topic"`
-	Id           string    `json:"id"`
-	Cover        string    `json:"cover"`
-}
 
 type view struct {
 	Title                    string    `json:"title"`
@@ -58,51 +46,96 @@ type view struct {
 	WechatSubscription       string    `json:"wechat_subscription"`
 }
 
-func (*_post) List(ctx *gin.Context, page int) (int64, []index, error) {
+func (*_post) List(ctx *gin.Context, page int) (int64, []interface{}, error) {
 	skip := (page - 1) * PageSize
 	var (
-		data index
-		res  = make([]index, 0, PageSize)
+		data  = make([]interface{}, 0, PageSize)
+		total int64
+		buf   bytes.Buffer
+		r     map[string]interface{}
+		err   error
 	)
-	fields := helper.GetStructJsonTag(data)
-	_source := elastic.NewFetchSourceContext(true)
-	_source.Include(fields...)
-	searchResult, err := db.ES.Search().
-		Index(consts.TopicCost).
-		FetchSourceContext(_source).
-		Sort("last_edit_time", false).
-		From(skip).
-		Size(PageSize).
-		Do(context.Background())
+	query := map[string]interface{}{
+		"from": skip,
+		"size": PageSize,
+		"sort": map[string]interface{}{
+			"last_edit_time": map[string]interface{}{
+				"order": "desc",
+			},
+		},
+		"_source": []string{"author", "title", "description", "topic", "id", "cover"},
+	}
+	if err = json.NewEncoder(&buf).Encode(query); err != nil {
+		panic(errors.Wrap(err, "json encode 错误"))
+	}
+	res, err := db.ES.Search(
+		db.ES.Search.WithIndex(consts.TopicCost),
+		db.ES.Search.WithBody(&buf),
+	)
+	defer res.Body.Close()
 	if err != nil {
-		return 0, nil, err
+		return 0, data, errors.Wrap(consts.ESError{}, err.Error())
 	}
-	for k, item := range searchResult.Each(reflect.TypeOf(data)) {
-		tmp := item.(index)
-		tmp.Id = searchResult.Hits.Hits[k].Id
-		tmp.Cover = Post.ConvertWebp(ctx, tmp.Cover)
-		res = append(res, tmp)
+	if res.IsError() {
+		resp, _ := ioutil.ReadAll(res.Body)
+		panic(errors.New(string(resp)))
 	}
-	return searchResult.TotalHits(), res, nil
+	if err = json.NewDecoder(res.Body).Decode(&r); err != nil {
+		panic(errors.Wrap(err, "json decode 错误"))
+	}
+	// 总条数
+	total = int64(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64))
+
+	for _, v := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
+		data = append(data, v.(map[string]interface{})["_source"])
+	}
+
+	return total, data, nil
 }
 
-func (*_post) View(ctx *gin.Context, id string) (*view, error) {
-	resp, err := db.ES.Get().Index(consts.TopicCost).Id(id).Do(context.Background())
+func (*_post) View(ctx *gin.Context, id string) (data interface{}, err error) {
+	var (
+		buf bytes.Buffer
+		r   map[string]interface{}
+	)
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"term": map[string]interface{}{
+				"id.keyword": map[string]string{
+					"value": id,
+				},
+			},
+		},
+	}
+	if err = json.NewEncoder(&buf).Encode(query); err != nil {
+		panic(errors.Wrap(err, "json encode错误"))
+	}
+	res, err := db.ES.Search(
+		db.ES.Search.WithIndex(consts.TopicCost),
+		db.ES.Search.WithBody(&buf),
+	)
+	defer res.Body.Close()
 	if err != nil {
-		return nil, nil
+		panic(errors.Wrap(err, "es请求错误"))
 	}
-	var data view
-	if err = json.Unmarshal(resp.Source, &data); err != nil {
-		return nil, err
+	if res.IsError() {
+		resp, _ := ioutil.ReadAll(res.Body)
+		panic(errors.New(string(resp)))
 	}
-	if resp.Source == nil {
-		return nil, nil
+	if err = json.NewDecoder(res.Body).Decode(&r); err != nil {
+		panic(errors.Wrap(err, "json encode错误"))
 	}
-	data.Cover = Post.ConvertWebp(ctx, data.Cover)
-	data.WechatSubscriptionQrcode = Post.ConvertWebp(ctx, data.WechatSubscriptionQrcode)
-	data.Content = Post.ConvertContentWebP(ctx, data.Content)
-	logger.Debugf("%s", resp.Id)
-	return &data, nil
+
+	data = r["hits"].(map[string]interface{})["hits"].([]interface{})[0].(map[string]interface{})["_source"]
+
+	// 封面图片webp
+	data.(map[string]interface{})["cover"] = Post.ConvertWebp(ctx, data.(map[string]interface{})["cover"].(string))
+	// 内容图片webp
+	data.(map[string]interface{})["content"] = Post.ConvertContentWebP(ctx, data.(map[string]interface{})["content"].(string))
+	// 账户二维码webp
+	data.(map[string]interface{})["wechat_subscription_qrcode"] = Post.ConvertWebp(ctx, data.(map[string]interface{})["wechat_subscription_qrcode"].(string))
+
+	return
 }
 
 func (*_post) ConvertWebp(ctx *gin.Context, image string) string {

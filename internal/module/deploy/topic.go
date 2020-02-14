@@ -1,11 +1,11 @@
 package deploy
 
 import (
-	"context"
 	"dyc/internal/consts"
 	"dyc/internal/db"
-	"dyc/internal/logger"
-	"github.com/olivere/elastic/v7"
+	"errors"
+	"io/ioutil"
+	"strings"
 )
 
 var (
@@ -15,33 +15,24 @@ var (
 type _topic struct{}
 
 func (*_topic) Init() error {
-	// Use the IndexExists service to check if a specified index exists.
-	exists, err := db.ES.IndexExists(consts.TopicCost).Do(context.Background())
+	res, err := db.ES.Indices.Exists(
+		[]string{consts.TopicCost},
+	)
 	if err != nil {
 		return err
 	}
-	if !exists {
-		_, err := db.ES.CreateIndex(consts.TopicCost).Body(consts.TopicMapping).Do(context.Background())
+	if res.StatusCode == 404 {
+		res2, err := db.ES.Indices.Create(
+			consts.TopicCost,
+			db.ES.Indices.Create.WithBody(strings.NewReader(consts.TopicMapping)),
+		)
 		if err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func (*_topic) Purge(key string) error {
-	// Use the IndexExists service to check if a specified index exists.
-	exists, err := db.ES.IndexExists(consts.TopicCost).Do(context.Background())
-	if err != nil {
-		return err
-	}
-	if exists {
-		bq := elastic.NewTermQuery("key", key)
-		purgeResp, err := db.ES.DeleteByQuery().Index(consts.TopicCost).Query(bq).Do(context.Background())
-		if err != nil {
-			return err
+		if res2.IsError() {
+			resp, _ := ioutil.ReadAll(res.Body)
+			return errors.New(string(resp))
 		}
-		logger.Debugf("delete articles: %v", purgeResp)
 	}
 	return nil
 }
