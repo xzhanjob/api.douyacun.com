@@ -69,7 +69,7 @@ func (*_post) List(ctx *gin.Context, page int) (int64, []interface{}, error) {
 		panic(errors.Wrap(err, "json encode 错误"))
 	}
 	res, err := db.ES.Search(
-		db.ES.Search.WithIndex(consts.TopicCost),
+		db.ES.Search.WithIndex(consts.IndicesArticleCost),
 		db.ES.Search.WithBody(&buf),
 	)
 	defer res.Body.Close()
@@ -111,7 +111,7 @@ func (*_post) View(ctx *gin.Context, id string) (data interface{}, err error) {
 		panic(errors.Wrap(err, "json encode错误"))
 	}
 	res, err := db.ES.Search(
-		db.ES.Search.WithIndex(consts.TopicCost),
+		db.ES.Search.WithIndex(consts.IndicesArticleCost),
 		db.ES.Search.WithBody(&buf),
 	)
 	defer res.Body.Close()

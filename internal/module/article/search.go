@@ -47,7 +47,7 @@ func (*_search) List(q string) (total int64, data []interface{}, err error) {
 		panic(errors.Wrap(err, "json encode 错误"))
 	}
 	res, err := db.ES.Search(
-		db.ES.Search.WithIndex(consts.TopicCost),
+		db.ES.Search.WithIndex(consts.IndicesArticleCost),
 		db.ES.Search.WithBody(&buf),
 	)
 	defer res.Body.Close()

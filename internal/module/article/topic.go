@@ -42,7 +42,7 @@ func (*_topic) List(topic string, page int) (total int64, data []interface{}, er
 	}
 
 	res, err := db.ES.Search(
-		db.ES.Search.WithIndex(consts.TopicCost),
+		db.ES.Search.WithIndex(consts.IndicesArticleCost),
 		db.ES.Search.WithBody(&buf),
 	)
 	defer res.Body.Close()

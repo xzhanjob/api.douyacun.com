@@ -40,7 +40,7 @@ func (*_labels) List(size int) (data []string, err error) {
 	}
 
 	res, err := db.ES.Search(
-		db.ES.Search.WithIndex(consts.TopicCost),
+		db.ES.Search.WithIndex(consts.IndicesArticleCost),
 		db.ES.Search.WithBody(&buf),
 	)
 	defer res.Body.Close()

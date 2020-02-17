@@ -1,12 +1,14 @@
 package deploy
 
 import (
+	"dyc/internal/consts"
 	"dyc/internal/helper"
 	"dyc/internal/initialize"
 	"dyc/internal/logger"
 	"path"
 	"strings"
 	"sync"
+	"time"
 )
 
 func Run(dir string) {
@@ -14,14 +16,11 @@ func Run(dir string) {
 	if err != nil {
 		logger.Fatalf("加载配置文件: %s", err)
 	}
+	var tmpIndices = consts.IndicesArticleCost + "_" + time.Now().Format("20060102150405")
 	// 清理一下文章
-	if err = Topic.Init(); err != nil {
+	if err = Indices.Article.Create(tmpIndices); err != nil {
 		logger.Fatalf("初始化: %s", err)
 	}
-	// 初始化mapping
-	//if err = Topic.Purge(conf.Key); err != nil {
-	//	logger.Fatalf("初始化es mapping: %s", err)
-	//}
 	// 公众号二维码上传
 	if err = conf.UploadQrcode(conf.Root); err != nil {
 		logger.Fatalf(": %s", err)
@@ -47,7 +46,7 @@ func Run(dir string) {
 					logger.Errorf("upload image: %s", err)
 					return
 				}
-				if err := a.Storage(); err != nil {
+				if err := a.Storage(tmpIndices); err != nil {
 					logger.Errorf("elasticsearch 存储失败: %s", err)
 					return
 				}
@@ -55,6 +54,12 @@ func Run(dir string) {
 		}
 	}
 	wg.Wait()
+	if err = Indices.Article.Delete(consts.IndicesArticleCost); err != nil {
+		logger.Error(err)
+	}
+	if err = Indices.Article.ReindexAndDeleteSource(tmpIndices, consts.IndicesArticleCost); err != nil {
+		logger.Error(err)
+	}
 	// 生成webp图片
 	if err := helper.Image.Convert(path.Join(initialize.Config.Get().ImageDir, conf.Key)); err != nil {
 		logger.Error(err)

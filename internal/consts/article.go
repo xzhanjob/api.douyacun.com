@@ -1,7 +1,7 @@
 package consts
 
 const (
-	TopicMapping = `{
+	IndicesTopicMapping = `{
     "mappings": {
         "properties": {
             "author": {
@@ -79,7 +79,7 @@ const (
         }
     }
 }`
-	TopicCost          = "articles"
+	IndicesArticleCost = "articles"
 	MarkDownImageRegex = `!\[(.*)\]\((.*)(.png|.gif|.jpg|.jpeg|.webp)(.*)\)`
 	MarkDownLocalJump  = `\[.*\]\((\.?\/?(\w+\/?)+\.md)(.*)\)`
 )

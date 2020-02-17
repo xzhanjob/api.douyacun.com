@@ -242,22 +242,23 @@ func (a *Article) Complete(c *Conf, topicTitle string, fileName string) {
 }
 
 // 存储文章
-func (a *Article) Storage() (err error) {
+func (a *Article) Storage(index string) (err error) {
 	var buf bytes.Buffer
 	if err = json.NewEncoder(&buf).Encode(a); err != nil {
 		return
 	}
+
 	res, err := db.ES.Index(
-		consts.TopicCost,
+		index,
 		strings.NewReader(buf.String()),
 	)
-	defer res.Body.Close()
 	if err != nil {
 		return
 	}
+	defer res.Body.Close()
 	if res.IsError() {
 		resp, _ := ioutil.ReadAll(res.Body)
 		return errors.New(string(resp))
 	}
-	return nil
+	return
 }
