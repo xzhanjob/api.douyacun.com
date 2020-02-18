@@ -63,7 +63,7 @@ func (*_post) List(ctx *gin.Context, page int) (int64, []interface{}, error) {
 				"order": "desc",
 			},
 		},
-		"_source": []string{"author", "title", "description", "topic", "id", "cover"},
+		"_source": []string{"author", "title", "description", "topic", "id", "cover", "date", "last_edit_time"},
 	}
 	if err = json.NewEncoder(&buf).Encode(query); err != nil {
 		panic(errors.Wrap(err, "json encode 错误"))
