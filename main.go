@@ -1,4 +1,4 @@
-package main 
+package main
 
 import (
 	"dyc/internal/commands"
@@ -10,7 +10,7 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Name = "douyacun"
-	app.Version = "v0.3.0"
+	app.Version = "v0.3.1"
 	app.Commands = []cli.Command{
 		commands.Start,
 		commands.Deploy,
