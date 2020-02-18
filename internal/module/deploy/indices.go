@@ -67,6 +67,9 @@ func (*_article) Delete(index string) error {
 }
 
 func (*_article) ReindexAndDeleteSource(source, dest string) (err error) {
+	if err = Indices.Article.Create(dest); err != nil {
+		return
+	}
 	query := fmt.Sprintf(`{
 	  "source": {
 		"index": "%s"
