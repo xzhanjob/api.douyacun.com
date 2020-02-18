@@ -3,6 +3,7 @@ package deploy
 import (
 	"dyc/internal/consts"
 	"dyc/internal/db"
+	"dyc/internal/logger"
 	"fmt"
 	"github.com/pkg/errors"
 	"io/ioutil"
@@ -67,6 +68,7 @@ func (*_article) Delete(index string) error {
 }
 
 func (*_article) ReindexAndDeleteSource(source, dest string) (err error) {
+	logger.Debugf("create indices(%s) mapping", dest)
 	if err = Indices.Article.Create(dest); err != nil {
 		return
 	}
@@ -78,6 +80,7 @@ func (*_article) ReindexAndDeleteSource(source, dest string) (err error) {
 		"index": "%s"
 	  }
 	}`, source, dest)
+	logger.Debugf("reindex source(%s) desc(%s)",source, dest)
 	res, err := db.ES.Reindex(
 		strings.NewReader(query),
 	)
