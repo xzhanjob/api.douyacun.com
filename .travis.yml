@@ -1,5 +1,4 @@
 language: go
-sudo: required
 go:
   - 1.13.x
 env:
@@ -25,9 +24,9 @@ script:
 deploy:
   provider: script
   script: bash scripts/travis.sh
-  skip_cleanup: true
-#  on:
-#    tags: true
+  clean: false
+  on:
+    tags: true
 notifications:
   email:
     recipients:
