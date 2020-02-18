@@ -10,6 +10,7 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Name = "douyacun"
+	app.Version = "v0.2.9"
 	app.Commands = []cli.Command{
 		commands.Start,
 		commands.Deploy,
