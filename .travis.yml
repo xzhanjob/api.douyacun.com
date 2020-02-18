@@ -27,6 +27,7 @@ deploy:
   provider: script
   script: bash scripts/travis.sh
   skip_cleanup: true
+  cleanup: false
   on:
     tags: true
 notifications:
