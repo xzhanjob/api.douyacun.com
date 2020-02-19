@@ -94,7 +94,7 @@ func NewArticle(file string) (*Article, error) {
 // 注意: 这里image topic为根目录，一般是 assert/a.jpg
 func (a *Article) UploadImage(bookDir string, topic string) (err error) {
 	// 图片前缀
-	imagePrefix := path.Join("/images", a.Key, topic)
+	imagePrefix := path.Join("/images/blog", a.Key, topic)
 	// 图片服务存储目录, 去掉images，方便后面直接拼接images
 	storageDir := path.Dir(initialize.Config.Get().ImageDir)
 	var errTemplate = func(s string) error {

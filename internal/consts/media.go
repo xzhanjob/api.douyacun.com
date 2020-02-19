@@ -161,4 +161,7 @@ const (
 }
 `
 	IndicesMediaConst = "media"
+	MediaDefaultPageSize = 20
+	SubtypeMovie = "movie"
+	SubtypeTV = "tv"
 )
