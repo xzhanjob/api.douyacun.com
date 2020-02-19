@@ -90,13 +90,15 @@ func NewArticle(file string) (*Article, error) {
 
 // bookDir: book所在目录
 // book图片存储目录 {topic}
-// 服务器图片存储目录 /images/{a.Key}/{topic}/{image}
+// 服务器图片存储目录 /images/blog/{a.Key}/{topic}/{image}
+// 配置图片存储目录 /data/web/images/blog/
+// /images/blog/ 需要作为前缀
 // 注意: 这里image topic为根目录，一般是 assert/a.jpg
 func (a *Article) UploadImage(bookDir string, topic string) (err error) {
 	// 图片前缀
 	imagePrefix := path.Join("/images/blog", a.Key, topic)
 	// 图片服务存储目录, 去掉images，方便后面直接拼接images
-	storageDir := path.Dir(initialize.Config.Get().ImageDir)
+	storageDir := path.Dir(path.Dir(initialize.Config.Get().ImageDir))
 	var errTemplate = func(s string) error {
 		return fmt.Errorf("《%s》: %s", a.Title, s)
 	}
