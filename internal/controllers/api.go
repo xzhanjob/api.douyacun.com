@@ -15,7 +15,7 @@ func NewRouter(router *gin.Engine) {
 		api.GET("/search", Article.Search)
 		api.POST("/subscribe", Subscribe.Create)
 		api.GET("/media/subtype/:subtype", Media.Index)
-		api.GET("/media/view/:id", Media.View)
+		api.GET("/video/:id", Media.View)
 	}
 	router.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")

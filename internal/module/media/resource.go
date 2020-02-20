@@ -9,6 +9,8 @@ import (
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"strings"
+	"text/template"
+	"time"
 )
 
 var Resource _Resource
@@ -29,6 +31,7 @@ type _article struct {
 	Summary   string
 	Torrents  []_torrent
 	Shares    []_share
+	Date      time.Time `json:"updated_at"`
 }
 
 type _torrent struct {
@@ -37,8 +40,8 @@ type _torrent struct {
 }
 
 type _share struct {
-	Source string `json:"source"`
-	Desc   string `json:"desc"`
+	Source  string `json:"source"`
+	Desc    string `json:"desc"`
 }
 
 func (*_Resource) Index(page int, subtype string) (total int64, data []interface{}, err error) {
@@ -173,10 +176,11 @@ func (*_Resource) View(id string) (data _article, err error) {
 		panic(errors.Wrap(err, "media/:id 接口 es response json decode错误"))
 	}
 	data = resp.Source
+	data.Cover = consts.Host + "images/media/" + data.Cover
 
 	// torrents
 	resTorrent, err := db.ES.Search(
-		db.ES.Search.WithIndex(consts.IndicesMediaShareConst),
+		db.ES.Search.WithIndex(consts.IndicesMediaTorrentConst),
 		db.ES.Search.WithQuery(fmt.Sprintf("media_id:%s", id)),
 	)
 	if err != nil {
@@ -190,14 +194,14 @@ func (*_Resource) View(id string) (data _article, err error) {
 	if err = json.NewDecoder(resTorrent.Body).Decode(&hitsTorrent); err != nil {
 		panic(errors.Wrap(err, "media/:id media_torrent json decode 错误"))
 	}
-	for _, v := range hitsTorrent.Hits.Hits {
-		data.Torrents = append(data.Torrents, v.Source)
+	for _, t := range hitsTorrent.Hits.Hits {
+		data.Torrents = append(data.Torrents, t.Source)
 	}
 
 	// shares
 	var hitsShare _shareResp
 	resShare, err := db.ES.Search(
-		db.ES.Search.WithIndex(consts.IndicesMediaTorrentConst),
+		db.ES.Search.WithIndex(consts.IndicesMediaShareConst),
 		db.ES.Search.WithQuery(fmt.Sprintf("media_id:%s", id)),
 	)
 	if err != nil {
@@ -210,48 +214,62 @@ func (*_Resource) View(id string) (data _article, err error) {
 	if err = json.NewDecoder(resShare.Body).Decode(&hitsShare); err != nil {
 		panic(errors.Wrap(err, "media:id media_share json decode 错误"))
 	}
-	for _, v := range hitsShare.Hits.Hits {
-		data.Shares = append(data.Shares, v.Source)
+	for _, v2 := range hitsShare.Hits.Hits {
+		data.Shares = append(data.Shares, v2.Source)
 	}
 	return
 }
 
-func (*_Resource) toArticle(data _article) (res map[string]interface{}, err error) {
+func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err error) {
 
 	text := `
-![]({{.cover}})
+![]({{.Cover}})
 
-
-#  亲爱的新年好
-
-**更多中文名:**  {{.alias}}
-
-**对白语言：** {{.language}}
-
-**片长：** {{.duration}}
-
-**演员：** {{range .casts}} []
-
-**上映时间:**  {{.released}}
-
-**导演：** {{range .directors}}
-
-**类型：** {{range .genres}}
-
-**剧情:**  {{.summary}}
-
-
-
-## 下载地址
-
-{{range .torrents}}
-- <a href="javascript:void(0)" target="_blank">亲爱的新年好.Happy New Year.2019.HD1080P.X264.AAC.Mandarin.CHS.mp4</a>
+{{if .Alias}}
+**更多中文名：**  {{range $k, $v := .Alias}} {{if $k}}/{{end}} {{$v}} {{end}}
 {{end}}
 
+{{if .Language}}
+**对白语言：** {{range $k, $v := .Language}} {{if $k}}/{{end}} {{$v}} {{end}}
+{{end}}
 
+{{if .Duration}}
+**片长：** {{.Duration}}
+{{end}}
+
+{{if .Casts}}
+**演员：** {{range $k, $v := .Casts}} {{if $k}}/{{end}} [{{$v}}](http://www.douyacun.com/media/search?q=casts:{{$v}}) {{end}}
+{{end}}
+
+{{if .Released}}
+**上映时间：**  {{.Released}}
+{{end}}
+
+{{if .Directors}}
+**导演：** {{range $k, $v := .Directors}} {{if $k}}/{{end}} [{{$v}}](http://www.douyacun.com/media/search?q=casts:{{$v}}) {{end}}
+{{end}}
+
+{{if .Genres}}
+**类型：** {{range $k, $v := .Genres}} {{if $k}}/{{end}} [{{$v}}](http://www.douyacun.com/media/search?q=casts:{{$v}}) {{end}}
+{{end}}
+
+{{if .Summary}}
+**剧情：**  {{.Summary}}
+{{end}}
+
+{{if .Torrents}}
+## 下载地址
+
+{{range $k, $v := .Torrents}}
+- {{$v.Desc}} <a href="javascript:void(0)" onclick="alert('复制成功')" class="copy" data-clipboard-text="{{$v.Torrent}}">点此复制</a>
+{{end}}
+{{end}}
+
+{{if .Shares}}
 ## 在线观看
-{{range .shares}}
-- <a href="javascript:void(0)" target="_blank">亲爱的新年好.Happy New Year.2019.HD1080P.X264.AAC.Mandarin.CHS.mp4</a>
+{{range $k, $v := .Shares}}
+- <a href="{{$v.Source}}" target="_blank">{{$v.Desc}} {{$v.Source}}</a>
+{{end}}
 {{end}}
 
 
@@ -267,5 +285,15 @@ func (*_Resource) toArticle(data _article) (res map[string]interface{}, err erro
 	}
 	var buf bytes.Buffer
 
-	tmpl.Execute(&buf, )
+	err = tmpl.Execute(&buf, data)
+
+	res = map[string]interface{}{
+		"author":      "",
+		"content":     buf.String(),
+		"date":        data.Date,
+		"description": "",
+		"keywords":    data.Title + "," + strings.Join(data.Alias, ",") + ",迅雷下载,种子下载,在线观看",
+		"title":       data.Title,
+	}
+	return
 }

@@ -39,6 +39,11 @@ func (*_Media) View(ctx *gin.Context) {
 		helper.Fail(ctx, err)
 		return
 	}
-	helper.Success(ctx, data)
+	res, err := media.Resource.ToArticle(data)
+	if err != nil {
+		helper.Fail(ctx, err)
+		return
+	}
+	helper.Success(ctx, gin.H{"data": res})
 	return
 }
