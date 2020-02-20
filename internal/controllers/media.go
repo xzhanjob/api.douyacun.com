@@ -50,5 +50,13 @@ func (*_Media) View(ctx *gin.Context) {
 
 func (*_Media) Search(ctx *gin.Context) {
 	q := ctx.Query("q")
-	media.Resource.Index()
+	page, err := strconv.Atoi(ctx.Query("page"))
+	if err != nil {
+		page = 1
+	}
+	total, data, err := media.Resource.Search(page, q)
+	if err != nil {
+		helper.Fail(ctx, err)
+	}
+	helper.Success(ctx, gin.H{"total": total, "data": data})
 }

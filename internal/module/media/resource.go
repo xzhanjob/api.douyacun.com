@@ -238,7 +238,7 @@ func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err erro
 {{end}}
 
 {{if .Casts}}
-**演员：** {{range $k, $v := .Casts}} {{if $k}}/{{end}} <a href="http://www.douyacun.com/media/search?q=casts:{{$v}}" target="_blank">{{$v}}</a> {{end}}
+**演员：** {{range $k, $v := .Casts}} {{if $k}}/{{end}} <a href="http://www.douyacun.com/search/media?q=casts:{{$v}}" target="_blank">{{$v}}</a> {{end}}
 {{end}}
 
 {{if .Released}}
@@ -246,11 +246,11 @@ func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err erro
 {{end}}
 
 {{if .Directors}}
-**导演：** {{range $k, $v := .Directors}} {{if $k}}/{{end}} <a href="http://www.douyacun.com/media/search?q=casts:{{$v}}" target="_blank">{{$v}}</a>{{end}}
+**导演：** {{range $k, $v := .Directors}} {{if $k}}/{{end}} <a href="http://www.douyacun.com/search/media?q=directors:{{$v}}" target="_blank">{{$v}}</a>{{end}}
 {{end}}
 
 {{if .Genres}}
-**类型：** {{range $k, $v := .Genres}} {{if $k}}/{{end}} <a href="http://www.douyacun.com/media/search?q=casts:{{$v}}" target="_blank">{{$v}}</a> {{end}}
+**类型：** {{range $k, $v := .Genres}} {{if $k}}/{{end}} <a href="http://www.douyacun.com/search/media?q=genres:{{$v}}" target="_blank">{{$v}}</a> {{end}}
 {{end}}
 
 {{if .Summary}}
@@ -300,14 +300,26 @@ func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err erro
 
 func (*_Resource) Search(page int, query string) (total int64, data []interface{}, err error) {
 	skip := (page - 1) * consts.MediaDefaultPageSize
+	query = fmt.Sprintf("%s&from=%d&size=%d", strings.TrimRight(query, "&"), skip, consts.MediaDefaultPageSize)
 	res, err := db.ES.Search(
-		db.ES.Search.WithIndex(consts.IndicesArticleCost),
+		db.ES.Search.WithIndex(consts.IndicesMediaConst),
 		db.ES.Search.WithQuery(query),
 	)
 	if err != nil {
 		panic(errors.Wrap(err, "es 查询错误"))
 	}
 	if res.IsError() {
-		panic(errors.New())
+		panic(errors.Errorf("[%s] ES error", res.Status()))
 	}
+	defer res.Body.Close()
+	var r map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&r)
+	if err != nil {
+		panic(errors.Wrapf(err, "search/media?%s json decode failed", query))
+	}
+	total = int64(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64))
+	for _, v := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
+		data = append(data, Resource.toMap(v.(map[string]interface{})["_source"]))
+	}
+	return
 }
