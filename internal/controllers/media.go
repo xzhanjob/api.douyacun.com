@@ -32,3 +32,13 @@ func (*_Media) Index(ctx *gin.Context) {
 	return
 }
 
+func (*_Media) View(ctx *gin.Context) {
+	id := ctx.Param("id")
+	data, err := media.Resource.View(id)
+	if err != nil {
+		helper.Fail(ctx, err)
+		return
+	}
+	helper.Success(ctx, data)
+	return
+}
