@@ -40,8 +40,8 @@ type _torrent struct {
 }
 
 type _share struct {
-	Source  string `json:"source"`
-	Desc    string `json:"desc"`
+	Source string `json:"source"`
+	Desc   string `json:"desc"`
 }
 
 func (*_Resource) Index(page int, subtype string) (total int64, data []interface{}, err error) {
@@ -238,7 +238,7 @@ func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err erro
 {{end}}
 
 {{if .Casts}}
-**演员：** {{range $k, $v := .Casts}} {{if $k}}/{{end}} [{{$v}}](http://www.douyacun.com/media/search?q=casts:{{$v}}) {{end}}
+**演员：** {{range $k, $v := .Casts}} {{if $k}}/{{end}} <a href="http://www.douyacun.com/media/search?q=casts:{{$v}}" target="_blank">{{$v}}</a> {{end}}
 {{end}}
 
 {{if .Released}}
@@ -246,11 +246,11 @@ func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err erro
 {{end}}
 
 {{if .Directors}}
-**导演：** {{range $k, $v := .Directors}} {{if $k}}/{{end}} [{{$v}}](http://www.douyacun.com/media/search?q=casts:{{$v}}) {{end}}
+**导演：** {{range $k, $v := .Directors}} {{if $k}}/{{end}} <a href="http://www.douyacun.com/media/search?q=casts:{{$v}}" target="_blank">{{$v}}</a>{{end}}
 {{end}}
 
 {{if .Genres}}
-**类型：** {{range $k, $v := .Genres}} {{if $k}}/{{end}} [{{$v}}](http://www.douyacun.com/media/search?q=casts:{{$v}}) {{end}}
+**类型：** {{range $k, $v := .Genres}} {{if $k}}/{{end}} <a href="http://www.douyacun.com/media/search?q=casts:{{$v}}" target="_blank">{{$v}}</a> {{end}}
 {{end}}
 
 {{if .Summary}}
@@ -296,4 +296,18 @@ func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err erro
 		"title":       data.Title,
 	}
 	return
+}
+
+func (*_Resource) Search(page int, query string) (total int64, data []interface{}, err error) {
+	skip := (page - 1) * consts.MediaDefaultPageSize
+	res, err := db.ES.Search(
+		db.ES.Search.WithIndex(consts.IndicesArticleCost),
+		db.ES.Search.WithQuery(query),
+	)
+	if err != nil {
+		panic(errors.Wrap(err, "es 查询错误"))
+	}
+	if res.IsError() {
+		panic(errors.New())
+	}
 }

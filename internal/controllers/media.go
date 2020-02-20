@@ -47,3 +47,8 @@ func (*_Media) View(ctx *gin.Context) {
 	helper.Success(ctx, gin.H{"data": res})
 	return
 }
+
+func (*_Media) Search(ctx *gin.Context) {
+	q := ctx.Query("q")
+	media.Resource.Index()
+}

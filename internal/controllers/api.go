@@ -12,9 +12,10 @@ func NewRouter(router *gin.Engine) {
 		api.GET("/articles/labels", Article.Labels)
 		api.GET("/article/:id", Article.View)
 		api.GET("/topic/:topic", Topic.List)
-		api.GET("/search", Article.Search)
+		api.GET("/search/articles", Article.Search)
 		api.POST("/subscribe", Subscribe.Create)
 		api.GET("/media/subtype/:subtype", Media.Index)
+		api.GET("/search/media", Media.Search)
 		api.GET("/video/:id", Media.View)
 	}
 	router.GET("/ping", func(c *gin.Context) {
