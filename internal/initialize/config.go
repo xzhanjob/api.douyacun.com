@@ -20,6 +20,7 @@ type _config struct {
 	PidFile              string   `yaml:"pid-file"`
 	LogFile              string   `yaml:"log-file"`
 	ImageDir             string   `yaml:"image-dir"`
+	Host                 string   `yaml:"host"`
 }
 
 var runMode = consts.DebugCode

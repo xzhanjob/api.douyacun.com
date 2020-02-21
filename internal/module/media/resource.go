@@ -99,12 +99,12 @@ func (*_Resource) Index(page int, subtype string) (total int64, data []interface
 	}
 	total = int64(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64))
 	for _, v := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
-		data = append(data, Resource.toMap(v.(map[string]interface{})["_source"]))
+		data = append(data, Resource.toMap(v.(map[string]interface{})["_source"], ""))
 	}
 	return
 }
 
-func (*_Resource) toMap(data interface{}) interface{} {
+func (*_Resource) toMap(data interface{}, author string) interface{} {
 	if v, ok := data.(map[string]interface{}); ok {
 		var (
 			f = map[string]interface{}{
@@ -113,28 +113,28 @@ func (*_Resource) toMap(data interface{}) interface{} {
 				"title":       v["title"],
 				"released":    v["released"],
 				"description": v["summary"],
-				"author":      "",
+				"author":      author,
 				"cover":       "",
 			}
 			genres []string
 		)
 		// author
-		if f, ok := v["genres"].([]interface{}); ok {
-			if len(f) > 2 {
-				f = f[:2]
+		if a, ok := v["genres"].([]interface{}); ok && author == "" {
+			if len(a) > 2 {
+				a = a[:2]
 			}
-			if len(f) == 0 {
-				if f, ok = v["region"].([]interface{}); ok {
-					if len(f) > 2 {
-						f = f[:2]
+			if len(a) == 0 {
+				if a, ok = v["region"].([]interface{}); ok {
+					if len(a) > 2 {
+						a = a[:2]
 					}
 				}
 			}
-			for _, g := range f {
+			for _, g := range a {
 				genres = append(genres, g.(string))
 			}
+			f["author"] = strings.Join(genres, "/")
 		}
-		f["author"] = strings.Join(genres, "/")
 		// cover
 		f["cover"] = "http://www.douyacun.com/images/media/" + v["cover"].(string)
 		return f
@@ -177,8 +177,7 @@ func (*_Resource) View(id string) (data _article, err error) {
 		panic(errors.Wrap(err, "media/:id 接口 es response json decode错误"))
 	}
 	data = resp.Source
-	data.Cover = consts.Host + "images/media/" + data.Cover
-	data.Url = consts.Host + "search/media"
+	data.Cover = fmt.Sprintf("%s%s%s", consts.Host, "/images/media/", data.Cover)
 
 	// torrents
 	resTorrent, err := db.ES.Search(
@@ -223,6 +222,7 @@ func (*_Resource) View(id string) (data _article, err error) {
 }
 
 func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err error) {
+	data.Url = fmt.Sprintf("%s/search/media", consts.HostDev)
 
 	text := `
 ![]({{.Cover}})
@@ -240,7 +240,7 @@ func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err erro
 {{end}}
 
 {{if .Casts}}
-**演员：** {{range $k, $v := .Casts}} {{if $k}}/{{end}} <a href="{{.Url}}?q=casts:{{$v}}" target="_blank">{{$v}}</a> {{end}}
+**演员：** {{range $k, $v := .Casts}} {{if $k}}/{{end}} <a href='{{html $.Url}}?q=casts:"{{$v}}"' target="_blank">{{$v}}</a> {{end}}
 {{end}}
 
 {{if .Released}}
@@ -248,11 +248,11 @@ func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err erro
 {{end}}
 
 {{if .Directors}}
-**导演：** {{range $k, $v := .Directors}} {{if $k}}/{{end}} <a href="{{.Url}}?q=directors:{{$v}}" target="_blank">{{$v}}</a>{{end}}
+**导演：** {{range $k, $v := .Directors}} {{if $k}}/{{end}} <a href='{{html $.Url}}?q=directors:"{{$v}}"' target="_blank">{{$v}}</a>{{end}}
 {{end}}
 
 {{if .Genres}}
-**类型：** {{range $k, $v := .Genres}} {{if $k}}/{{end}} <a href="{{.Url}}?q=genres:{{$v}}" target="_blank">{{$v}}</a> {{end}}
+**类型：** {{range $k, $v := .Genres}} {{if $k}}/{{end}} <a href='{{html $.Url}}?q=genres:"{{$v}}"' target="_blank">{{$v}}</a> {{end}}
 {{end}}
 
 {{if .Summary}}
@@ -300,12 +300,35 @@ func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err erro
 	return
 }
 
-func (*_Resource) Search(page int, query string) (total int64, data []interface{}, err error) {
-	skip := (page - 1) * consts.MediaDefaultPageSize
-	query = fmt.Sprintf("%s&from=%d&size=%d", strings.TrimRight(query, "&"), skip, consts.MediaDefaultPageSize)
+func (*_Resource) Search(page int, search string) (total int64, data []interface{}, err error) {
+	// 解析查询字段
+	key := ""
+	value := ""
+	var match map[string]interface{}
+	if p := strings.Index(search, ":"); p != -1 {
+		key = search[:p]
+		value = search[p+1:]
+		match = map[string]interface{}{
+			key: value,
+		}
+	} else {
+		match = map[string]interface{}{
+			"query": search,
+			"operator": "and",
+		}
+	}
+	query := map[string]interface{}{
+		"from": (page - 1) * consts.MediaDefaultPageSize,
+		"size": consts.MediaDefaultPageSize,
+		"query": map[string]interface{}{
+			"match": match,
+		},
+		"_source": []string{"id", "title", "region", "genres", "released", "rate", "summary", "cover"},
+	}
+
 	res, err := db.ES.Search(
 		db.ES.Search.WithIndex(consts.IndicesMediaConst),
-		db.ES.Search.WithQuery(query),
+		db.ES.Search.WithQuery(search),
 	)
 	if err != nil {
 		panic(errors.Wrap(err, "es 查询错误"))
@@ -317,11 +340,11 @@ func (*_Resource) Search(page int, query string) (total int64, data []interface{
 	var r map[string]interface{}
 	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
-		panic(errors.Wrapf(err, "search/media?%s json decode failed", query))
+		panic(errors.Wrapf(err, "search/media?%s json decode failed", search))
 	}
 	total = int64(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64))
 	for _, v := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
-		data = append(data, Resource.toMap(v.(map[string]interface{})["_source"]))
+		data = append(data, Resource.toMap(v.(map[string]interface{})["_source"], value))
 	}
 	return
 }
