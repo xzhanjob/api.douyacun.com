@@ -32,6 +32,7 @@ type _article struct {
 	Torrents  []_torrent
 	Shares    []_share
 	Date      time.Time `json:"updated_at"`
+	Url       string
 }
 
 type _torrent struct {
@@ -177,6 +178,7 @@ func (*_Resource) View(id string) (data _article, err error) {
 	}
 	data = resp.Source
 	data.Cover = consts.Host + "images/media/" + data.Cover
+	data.Url = consts.Host + "search/media"
 
 	// torrents
 	resTorrent, err := db.ES.Search(
@@ -238,7 +240,7 @@ func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err erro
 {{end}}
 
 {{if .Casts}}
-**演员：** {{range $k, $v := .Casts}} {{if $k}}/{{end}} <a href="http://www.douyacun.com/search/media?q=casts:{{$v}}" target="_blank">{{$v}}</a> {{end}}
+**演员：** {{range $k, $v := .Casts}} {{if $k}}/{{end}} <a href="{{.Url}}?q=casts:{{$v}}" target="_blank">{{$v}}</a> {{end}}
 {{end}}
 
 {{if .Released}}
@@ -246,11 +248,11 @@ func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err erro
 {{end}}
 
 {{if .Directors}}
-**导演：** {{range $k, $v := .Directors}} {{if $k}}/{{end}} <a href="http://www.douyacun.com/search/media?q=directors:{{$v}}" target="_blank">{{$v}}</a>{{end}}
+**导演：** {{range $k, $v := .Directors}} {{if $k}}/{{end}} <a href="{{.Url}}?q=directors:{{$v}}" target="_blank">{{$v}}</a>{{end}}
 {{end}}
 
 {{if .Genres}}
-**类型：** {{range $k, $v := .Genres}} {{if $k}}/{{end}} <a href="http://www.douyacun.com/search/media?q=genres:{{$v}}" target="_blank">{{$v}}</a> {{end}}
+**类型：** {{range $k, $v := .Genres}} {{if $k}}/{{end}} <a href="{{.Url}}?q=genres:{{$v}}" target="_blank">{{$v}}</a> {{end}}
 {{end}}
 
 {{if .Summary}}
