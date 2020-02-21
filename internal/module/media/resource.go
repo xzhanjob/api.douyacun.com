@@ -227,7 +227,7 @@ func (*_Resource) View(id string) (data _article, err error) {
 }
 
 func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err error) {
-	data.Url = fmt.Sprintf("%s/search/media", consts.HostDev)
+	data.Url = fmt.Sprintf("%s/search/media", consts.Host)
 
 	text := `
 ![]({{.Cover}})
