@@ -325,10 +325,14 @@ func (*_Resource) Search(page int, search string) (total int64, data []interface
 		},
 		"_source": []string{"id", "title", "region", "genres", "released", "rate", "summary", "cover"},
 	}
-
+	var buf bytes.Buffer
+	err = json.NewEncoder(&buf).Encode(query)
+	if err != nil {
+		panic(errors.Wrap(err, "search/media json encode 错误"))
+	}
 	res, err := db.ES.Search(
 		db.ES.Search.WithIndex(consts.IndicesMediaConst),
-		db.ES.Search.WithQuery(search),
+		db.ES.Search.WithBody(&buf),
 	)
 	if err != nil {
 		panic(errors.Wrap(err, "es 查询错误"))
