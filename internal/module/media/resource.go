@@ -108,13 +108,13 @@ func (*_Resource) toMap(data interface{}, author string) interface{} {
 	if v, ok := data.(map[string]interface{}); ok {
 		var (
 			f = map[string]interface{}{
-				"id":          v["id"],
-				"rate":        int64(v["rate"].(float64)),
-				"title":       v["title"],
-				"released":    v["released"],
-				"description": v["summary"],
-				"author":      author,
-				"cover":       "",
+				"id":             v["id"],
+				"rate":           int64(v["rate"].(float64)),
+				"title":          v["title"],
+				"last_edit_time": v["released"],
+				"description":    v["summary"],
+				"author":         author,
+				"cover":          "",
 			}
 			genres []string
 		)
@@ -136,7 +136,9 @@ func (*_Resource) toMap(data interface{}, author string) interface{} {
 			f["author"] = strings.Join(genres, "/")
 		}
 		// cover
-		f["cover"] = "http://www.douyacun.com/images/media/" + v["cover"].(string)
+		if cover, ok := v["cover"]; ok && len(cover.(string)) > 2 {
+			f["cover"] = fmt.Sprintf("%s/images/media/%s", consts.Host, cover)
+		}
 		return f
 	} else {
 		return data
@@ -177,8 +179,11 @@ func (*_Resource) View(id string) (data _article, err error) {
 		panic(errors.Wrap(err, "media/:id 接口 es response json decode错误"))
 	}
 	data = resp.Source
-	data.Cover = fmt.Sprintf("%s%s%s", consts.Host, "/images/media/", data.Cover)
-
+	if len(data.Cover) > 2 {
+		data.Cover = fmt.Sprintf("%s%s%s", consts.Host, "/images/media/", data.Cover)
+	} else {
+		data.Cover = ""
+	}
 	// torrents
 	resTorrent, err := db.ES.Search(
 		db.ES.Search.WithIndex(consts.IndicesMediaTorrentConst),
@@ -302,37 +307,16 @@ func (*_Resource) ToArticle(data _article) (res map[string]interface{}, err erro
 
 func (*_Resource) Search(page int, search string) (total int64, data []interface{}, err error) {
 	// 解析查询字段
-	key := ""
 	value := ""
-	var match map[string]interface{}
 	if p := strings.Index(search, ":"); p != -1 {
-		key = search[:p]
 		value = search[p+1:]
-		match = map[string]interface{}{
-			key: value,
-		}
-	} else {
-		match = map[string]interface{}{
-			"query": search,
-			"operator": "and",
-		}
-	}
-	query := map[string]interface{}{
-		"from": (page - 1) * consts.MediaDefaultPageSize,
-		"size": consts.MediaDefaultPageSize,
-		"query": map[string]interface{}{
-			"match": match,
-		},
-		"_source": []string{"id", "title", "region", "genres", "released", "rate", "summary", "cover"},
-	}
-	var buf bytes.Buffer
-	err = json.NewEncoder(&buf).Encode(query)
-	if err != nil {
-		panic(errors.Wrap(err, "search/media json encode 错误"))
 	}
 	res, err := db.ES.Search(
 		db.ES.Search.WithIndex(consts.IndicesMediaConst),
-		db.ES.Search.WithBody(&buf),
+		db.ES.Search.WithQuery(search),
+		db.ES.Search.WithFrom((page-1)*consts.MediaDefaultPageSize),
+		db.ES.Search.WithSize(consts.MediaDefaultPageSize),
+		db.ES.Search.WithSource("id", "title", "region", "genres", "released", "rate", "summary", "cover"),
 	)
 	if err != nil {
 		panic(errors.Wrap(err, "es 查询错误"))
