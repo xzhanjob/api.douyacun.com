@@ -12,9 +12,9 @@ var Deploy = cli.Command{
 	Name: "deploy",
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:     "conf",
-			Usage:    "-conf [filename]",
-			EnvVar:   "_DOUYACUN_CONF",
+			Name:     "env",
+			Usage:    "-env [dev, prod]",
+			EnvVar:   "_DOUYACUN_ENV",
 			Required: true,
 		},
 		cli.StringFlag{
@@ -28,7 +28,7 @@ var Deploy = cli.Command{
 
 func deployAction(c *cli.Context) (err error) {
 	// 加载配置文件
-	initialize.Init("conf/prod.ini")
+	initialize.Init(c.String("env"))
 	// 设置运行环境
 	logger.NewLogger(initialize.GetLogFD())
 	// 数据库

@@ -3,7 +3,6 @@ package controllers
 import (
 	"dyc/internal/helper"
 	"dyc/internal/module/media"
-	"errors"
 	"github.com/gin-gonic/gin"
 	"strconv"
 )
@@ -62,6 +61,3 @@ func (*_Media) Search(ctx *gin.Context) {
 	helper.Success(ctx, gin.H{"total": total, "data": data})
 }
 
-func (*_Media) Test(ctx *gin.Context) {
-	panic(errors.New("测试panic输出到日志文件"))
-}

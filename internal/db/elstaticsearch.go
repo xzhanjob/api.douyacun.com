@@ -13,8 +13,8 @@ func NewElasticsearch(address []string) {
 	es_once.Do(func() {
 		cfg := elasticsearch.Config{
 			Addresses: address,
-			Username:              "",
-			Password:              "",
+			Username:              "elastic",
+			Password:              "jA6AimX983gAYG5WXU8U",
 			CloudID:               "",
 			APIKey:                "",
 			RetryOnStatus:         nil,
