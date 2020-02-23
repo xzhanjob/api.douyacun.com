@@ -1,77 +1,52 @@
 package initialize
 
 import (
-	"dyc/internal/consts"
 	"dyc/internal/logger"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	"github.com/gin-gonic/gin"
+	ini "gopkg.in/ini.v1"
+	"log"
 	"os"
 	"strings"
 )
 
-var Config _config
+var Config *ini.File
+var logFd *os.File
 
-type _config struct {
-	MysqlDSN             string   `yaml:"mysql-dsn"`
-	ElasticsearchAddress []string `yaml:"elstaticsearch-address"`
-	Port                 string   `yaml:"port"`
-	RunMode              string   `yaml:"run-mode"`
-	Daemon               string   `yaml:"daemon"`
-	PidFile              string   `yaml:"pid-file"`
-	LogFile              string   `yaml:"log-file"`
-	ImageDir             string   `yaml:"image-dir"`
-	Host                 string   `yaml:"host"`
-}
-
-var runMode = consts.DebugCode
-var logFD *os.File
-
-func (*_config) Init(filename string) *_config {
+func Init(env string) *ini.File {
 	var (
 		err error
 	)
-	content, err := ioutil.ReadFile(filename)
+	switch env {
+	case "debug":
+		gin.SetMode(gin.DebugMode)
+		//ini
+		Config, err = ini.Load("configs/debug.ini")
+		logger.SetLevel("debug")
+	case "prod":
+		gin.SetMode(gin.ReleaseMode)
+		Config, err = ini.Load("configs/prod.ini")
+		logger.SetLevel("error")
+	default:
+		gin.SetMode(gin.ReleaseMode)
+		Config, err = ini.Load("configs/prod.ini")
+	}
 	if err != nil {
-		logger.Fatalf("Config file: %s", err)
+		log.Fatalf("load config filed, %s", err)
 	}
-	err = yaml.Unmarshal(content, &Config)
+	logFd, err = os.OpenFile(GetKey("path::log_file").String(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
-		logger.Fatal("Config file: %s", err)
+		log.Fatalf("path::log_file open failed, %s", err)
 	}
-	if Config.IsRelease() {
-		logFD, err = os.OpenFile(Config.Get().LogFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-		if err != nil {
-			logger.Fatalf("日志文件打开失败, %s", err)
-		}
-	} else {
-		logFD = os.Stdout
-	}
-	return &Config
+	return Config
 }
 
-func (*_config) IsDaemon() bool {
-	return strings.ToLower(Config.Daemon) == "on" || strings.ToLower(Config.Daemon) == "true"
+func GetKey(key string) *ini.Key {
+	parts := strings.Split(key, "::")
+	section := parts[0]
+	keyStr := parts[1]
+	return Config.Section(section).Key(keyStr)
 }
 
-func (*_config) IsRelease() bool {
-	return runMode == consts.ReleaseCode
-}
-
-func (*_config) Get() *_config {
-	return &Config
-}
-
-func (*_config) GetLogFD() *os.File {
-	return logFD
-}
-
-func (*_config) SetRunMode(mode string) {
-	switch mode {
-	case consts.DebugMode:
-		runMode = consts.DebugCode
-	case consts.ReleaseMode:
-		runMode = consts.ReleaseCode
-	case consts.InfoMode:
-		runMode = consts.TestCode
-	}
+func GetLogFD() *os.File  {
+	return logFd
 }

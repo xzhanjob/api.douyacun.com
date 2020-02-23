@@ -11,9 +11,11 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/sevlyar/go-daemon v0.1.5
+	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/urfave/cli v1.22.1
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.10.0
+	gopkg.in/ini.v1 v1.52.0
 	gopkg.in/yaml.v2 v2.2.2
 )

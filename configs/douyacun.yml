@@ -1,9 +1,0 @@
-mysql-dsn: root:123456@tcp(127.0.0.1:3306)/douyacun?charset=utf8&parseTime=True&loc=Local
-run-mode: dev
-daemon: false
-port: :9003
-pid-file: /Users/feifei/Documents/github.com/api.douyacun.com/storage/douyacun.pid
-log-file: /Users/feifei/Documents/github.com/api.douyacun.com/storage/logs/douyacun.log
-elstaticsearch-address: [http://douyacun.com:9200]
-image-dir: /data/web/images/blog
-host: http://www.douyacun.com

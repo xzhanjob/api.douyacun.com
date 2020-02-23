@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"dyc/internal/consts"
 	"dyc/internal/db"
 	"dyc/internal/initialize"
 	"dyc/internal/logger"
@@ -29,14 +28,11 @@ var Deploy = cli.Command{
 
 func deployAction(c *cli.Context) (err error) {
 	// 加载配置文件
-	initialize.Config.Init(c.String("conf"))
+	initialize.Init("conf/prod.ini")
 	// 设置运行环境
-	initialize.Config.SetRunMode(initialize.Config.Get().RunMode)
-	logger.NewLogger(initialize.Config.GetLogFD())
-	logger.SetLevel(consts.DebugMode)
+	logger.NewLogger(initialize.GetLogFD())
 	// 数据库
-	db.NewElasticsearch(initialize.Config.Get().ElasticsearchAddress)
-	initialize.Config.SetRunMode(consts.DebugMode)
+	db.NewElasticsearch(initialize.GetKey("elasticsearch::address").Strings(","))
 	deploy.Run(c.String("dir"))
 	return
 }

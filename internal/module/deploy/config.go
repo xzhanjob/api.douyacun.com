@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 )
 
@@ -56,13 +55,14 @@ func LoadConfig(dir string) (*Conf, error) {
 
 //
 func (c *Conf) UploadQrcode(dir string) (err error) {
+	imageDir := initialize.GetKey("path::image_dir").String()
 	// 服务器存储目录
-	storageDir := fmt.Sprintf("/%s/%s/%s", strings.Trim(initialize.Config.Get().ImageDir, "/"), c.Key, filepath.Dir(c.WechatSubscriptionQrcode))
+	storageDir := path.Join(imageDir, c.Key, path.Dir(c.WechatSubscriptionQrcode))
 	if err = os.MkdirAll(storageDir, 0755); err != nil {
 		return err
 	}
-	src := fmt.Sprintf("/%s/%s", strings.Trim(dir, "/"), strings.Trim(c.WechatSubscriptionQrcode, "/"))
-	dst := fmt.Sprintf("/%s/%s/%s", strings.Trim(initialize.Config.Get().ImageDir, "/"), c.Key, strings.Trim(c.WechatSubscriptionQrcode, "/"))
+	src := path.Join(dir, c.WechatSubscriptionQrcode)
+	dst := path.Join(imageDir, c.Key, c.WechatSubscriptionQrcode)
 	logger.Debugf("上传二维码 src: %s -> dst: %s", src, dst)
 	_, err = helper.File.Copy(dst, src)
 	if err != nil {
