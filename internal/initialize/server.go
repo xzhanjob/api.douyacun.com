@@ -30,9 +30,9 @@ func Server() {
 	db.NewElasticsearch(GetKey("elasticsearch::address").Strings(","), GetKey("elasticsearch::user").String(), GetKey("elasticsearch::password").String())
 	defer shutdown()
 	// 启动gin
-	gin.SetMode(gin.ReleaseMode)
 	engine = gin.New()
-	engine.Use(recoverWithWrite(GetLogFD()))
+	//engine.Use(recoverWithWrite(GetLogFD()))
+	engine.Use(gin.RecoveryWithWriter(GetLogFD()))
 
 	// 路由
 	controllers.NewRouter(engine)

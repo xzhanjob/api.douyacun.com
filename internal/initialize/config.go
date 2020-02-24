@@ -21,22 +21,29 @@ func Init(env string) *ini.File {
 		gin.SetMode(gin.DebugMode)
 		//ini
 		Config, err = ini.Load("configs/debug.ini")
+		gin.SetMode(gin.DebugMode)
 		logger.SetLevel("debug")
+		logFd = os.Stdout
 	case "prod":
 		gin.SetMode(gin.ReleaseMode)
 		Config, err = ini.Load("configs/prod.ini")
 		logger.SetLevel("info")
+		logFd, err = os.OpenFile(GetKey("path::log_file").String(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+		if err != nil {
+			log.Fatalf("path::log_file open failed, %s", err)
+		}
 	default:
 		gin.SetMode(gin.ReleaseMode)
 		Config, err = ini.Load("configs/prod.ini")
+		logFd, err = os.OpenFile(GetKey("path::log_file").String(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+		if err != nil {
+			log.Fatalf("path::log_file open failed, %s", err)
+		}
 	}
 	if err != nil {
 		log.Fatalf("load config filed, %s", err)
 	}
-	logFd, err = os.OpenFile(GetKey("path::log_file").String(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		log.Fatalf("path::log_file open failed, %s", err)
-	}
+
 	return Config
 }
 
