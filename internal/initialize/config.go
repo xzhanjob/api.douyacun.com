@@ -25,7 +25,7 @@ func Init(env string) *ini.File {
 	case "prod":
 		gin.SetMode(gin.ReleaseMode)
 		Config, err = ini.Load("configs/prod.ini")
-		logger.SetLevel("error")
+		logger.SetLevel("info")
 	default:
 		gin.SetMode(gin.ReleaseMode)
 		Config, err = ini.Load("configs/prod.ini")

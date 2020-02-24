@@ -32,7 +32,7 @@ func deployAction(c *cli.Context) (err error) {
 	// 设置运行环境
 	logger.NewLogger(initialize.GetLogFD())
 	// 数据库
-	db.NewElasticsearch(initialize.GetKey("elasticsearch::address").Strings(","))
+	db.NewElasticsearch(initialize.GetKey("elasticsearch::address").Strings(","), initialize.GetKey("elasticsearch::user").String(), initialize.GetKey("elasticsearch::password").String())
 	deploy.Run(c.String("dir"))
 	return
 }

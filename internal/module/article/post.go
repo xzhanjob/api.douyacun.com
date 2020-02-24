@@ -74,7 +74,7 @@ func (*_post) List(ctx *gin.Context, page int) (int64, []interface{}, error) {
 	)
 	defer res.Body.Close()
 	if err != nil {
-		return 0, data, errors.Wrap(consts.ESError{}, err.Error())
+		panic(errors.Wrap(err, "es search failed"))
 	}
 	if res.IsError() {
 		resp, _ := ioutil.ReadAll(res.Body)

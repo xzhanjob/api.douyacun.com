@@ -8,13 +8,13 @@ import (
 var ES *elasticsearch.Client
 var es_once sync.Once
 
-func NewElasticsearch(address []string) {
+func NewElasticsearch(address []string, user,password string) {
 	var err error
 	es_once.Do(func() {
 		cfg := elasticsearch.Config{
 			Addresses: address,
-			Username:              "elastic",
-			Password:              "jA6AimX983gAYG5WXU8U",
+			Username:              user,
+			Password:              password,
 			CloudID:               "",
 			APIKey:                "",
 			RetryOnStatus:         nil,

@@ -27,7 +27,7 @@ func Server() {
 	// 日志
 	logger.NewLogger(GetLogFD())
 	// 数据库
-	db.NewElasticsearch(GetKey("elasticsearch::address").Strings(","))
+	db.NewElasticsearch(GetKey("elasticsearch::address").Strings(","), GetKey("elasticsearch::user").String(), GetKey("elasticsearch::password").String())
 	defer shutdown()
 	// 启动gin
 	gin.SetMode(gin.ReleaseMode)
