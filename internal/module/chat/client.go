@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
+	"net/http"
 	"sync/atomic"
 	"time"
 
@@ -29,12 +30,15 @@ const (
 var (
 	newline        = []byte{'\n'}
 	space          = []byte{' '}
-	clientId int32 = 1
+	clientId int32 = 0
 )
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
 // Client is a middleman between the websocket connection and the hub.
@@ -72,10 +76,7 @@ func (c *Client) readPump() {
 			break
 		}
 		logger.Debugf("[%s] %s %s", c.conn.RemoteAddr(), time.Now().String(), message)
-		c.hub.broadcast <- &Message{
-			Client: c,
-			Msg:    bytes.TrimSpace(bytes.Replace(message, newline, space, -1)),
-		}
+		c.hub.broadcast <- NewChatMsg(c, string(bytes.TrimSpace(bytes.Replace(message, newline, space, -1))))
 	}
 }
 
@@ -139,14 +140,7 @@ func ServeWs(ctx *gin.Context, hub *Hub) {
 	}
 	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), id: registerClientId()}
 	client.hub.register <- client
-
-	buf := bytes.NewBufferString(fmt.Sprintf("欢迎 [%s] 加入", client.getName()))
-	hub.broadcast <- &Message{
-		Client: client,
-		Msg:    buf.Bytes(),
-	}
-	// Allow collection of memory referenced by the caller by doing all work in
-	// new goroutines.
+	hub.broadcast <- NewSystemMsg(client, fmt.Sprintf("欢迎 [%s] 加入", client.getName()))
 	go client.writePump()
 	go client.readPump()
 }
