@@ -1,71 +1,59 @@
 package chat
 
 import (
-	"dyc/internal/logger"
-	"encoding/json"
 	"sync/atomic"
 	"time"
 )
 
 // 消息来源
-type source string
+
+type msgType string
 
 const (
-	RegisterSource source = "REGISTER"
-	SystemSource   source = "SYSTEM"
-	ChatSource     source = "CHAT"
+	TextMsg msgType = "TEXT"
+	ImgMsg  msgType = "IMAGE"
+	FileMsg msgType = "FILE"
 )
 
 var msgId int64
 
 type Message struct {
-	// 客户端id
-	Id     int64
-	Client *Client
-	Msg    string
-	Source source
-	date   time.Time
+	// 消息id
+	Id int64
+	// 内容
+	Content string
+	// 发送时间
+	date time.Time
+	// 发送者
+	Source *Client
+	// 接受者
+	Dest *Client
+	// 消息类型
+	MsgType msgType
 }
 
-func NewRegisterResp(c *Client, msg string) *Message {
-	return NewMessage(c, RegisterSource, msg)
-}
-
-func NewSystemMsg(c *Client, msg string) *Message {
-	return NewMessage(c, SystemSource, msg)
-}
-
-func NewChatMsg(c *Client, msg string) *Message {
-	return NewMessage(c, ChatSource, msg)
-}
-
-func NewMessage(c *Client, t source, msg string) *Message {
-	return &Message{
-		Id:     genMsgId(),
-		Client: c,
-		Msg:    msg,
-		Source: t,
-		date:   time.Now(),
+// 实际发送结构体
+func (m *Message) toMap() map[string]interface{} {
+	return map[string]interface{}{
+		"source": map[string]interface{}{
+			"id":   m.Source.id,
+			"name": m.Source.getName(),
+		},
+		"dest": map[string]interface{}{
+		},
+		"date": m.date,
+		"context": map[string]interface{}{
+			"id":      m.Id,
+			"type":    m.MsgType,
+			"content": m.Content,
+		},
 	}
 }
 
-func (m *Message) GetMsg() []byte {
-	r := map[string]interface{}{
-		"id":      m.Id,
-		"author":  m.Client.getName(),
-		"source":  m.Source,
-		"date":    m.date,
-		"message": m.Msg,
-	}
-	data, err := json.Marshal(r)
-	if err != nil {
-		logger.Errorf("msg json encode failed, %s", err)
-	}
-	return data
-}
+
 
 func (m *Message) GetClient() *Client {
-	return m.Client
+	return m.Source
 }
 
 func genMsgId() int64 {

@@ -27,10 +27,12 @@ const (
 	maxMessageSize = 512
 )
 
+type _clientId int32
+
 var (
-	newline        = []byte{'\n'}
-	space          = []byte{' '}
-	clientId int32 = 0
+	newline  = []byte{'\n'}
+	space    = []byte{' '}
+	clientId int32
 )
 
 var upgrader = websocket.Upgrader{
@@ -51,7 +53,9 @@ type Client struct {
 	// Buffered channel of outbound messages.
 	send chan []byte
 
-	id int32
+	name string
+
+	id _clientId
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -76,7 +80,7 @@ func (c *Client) readPump() {
 			break
 		}
 		logger.Debugf("[%s] %s %s", c.conn.RemoteAddr(), time.Now().String(), message)
-		c.hub.broadcast <- NewChatMsg(c, string(bytes.TrimSpace(bytes.Replace(message, newline, space, -1))))
+		c.hub.broadcast <- NewMsgResp(c, string(bytes.TrimSpace(bytes.Replace(message, newline, space, -1))), TextMsg)
 	}
 }
 
@@ -127,10 +131,6 @@ func (c *Client) writePump() {
 	}
 }
 
-func (c *Client) getName() string {
-	return fmt.Sprintf("%d号客官", c.id)
-}
-
 // serveWs handles websocket requests from the peer.
 func ServeWs(ctx *gin.Context, hub *Hub) {
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
@@ -140,12 +140,29 @@ func ServeWs(ctx *gin.Context, hub *Hub) {
 	}
 	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), id: registerClientId()}
 	client.hub.register <- client
-	hub.broadcast <- NewSystemMsg(client, fmt.Sprintf("欢迎 [%s] 加入", client.getName()))
+	client.send <- NewRegisterResp(client).Bytes()
+	hub.broadcast <- NewMsgResp(client, fmt.Sprintf("欢迎 [%s] 加入", client.getName()), TextMsg)
 	go client.writePump()
 	go client.readPump()
 }
 
-func registerClientId() int32 {
+func registerClientId() _clientId {
 	atomic.AddInt32(&clientId, 1)
-	return clientId
+	return _clientId(clientId)
+}
+
+
+func (c *Client) getName() string {
+	if c.name == "" {
+		return fmt.Sprintf("%d号客官", c.id)
+	} else {
+		return c.name
+	}
+}
+
+func (c *Client) toMap() map[string]interface{}  {
+	return map[string]interface{}{
+		"id": c.id,
+		"name": c.name,
+	}
 }
