@@ -50,7 +50,27 @@ func (m *Message) toMap() map[string]interface{} {
 	}
 }
 
+func NewSystemMsg(msg string) *Message {
+	return &Message{
+		Id:      0,
+		Content: msg,
+		date:    time.Time{},
+		Source:  &Client{name: "系统消息", id: 0},
+		Dest:    nil,
+		MsgType: TextMsg,
+	}
+}
 
+func NewDefaultMsg(c *Client, msg string) *Message {
+	return &Message{
+		Id:      0,
+		Content: msg,
+		date:    time.Time{},
+		Source:  c,
+		Dest:    nil,
+		MsgType: TextMsg,
+	}
+}
 
 func (m *Message) GetClient() *Client {
 	return m.Source

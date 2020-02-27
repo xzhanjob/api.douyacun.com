@@ -3,7 +3,6 @@ package chat
 import (
 	"dyc/internal/logger"
 	"encoding/json"
-	"time"
 )
 
 type respType string
@@ -26,7 +25,7 @@ type RegisterResp struct {
 
 func (r *RegisterResp) Bytes() []byte {
 	data, err := json.Marshal(map[string]interface{}{
-		"type":   r.RespType,
+		"type":    r.RespType,
 		"account": r.Author.toMap(),
 	})
 	if err != nil {
@@ -60,29 +59,11 @@ func (r *MsgResp) Bytes() []byte {
 	return data
 }
 
-func NewMsgResp(c *Client, msg string, t msgType) Responser {
+func NewMsgResp(m *Message) Responser {
 	return &MsgResp{
 		response: response{
 			RespType: MsgRespConst,
 		},
-		Msg: &Message{
-			Id:      genMsgId(),
-			Content: msg,
-			date:    time.Time{},
-			Source:  c,
-			Dest:    nil,
-			MsgType: t,
-		},
-	}
-}
-
-func NewSystemMsg(msg string) *Message {
-	return &Message{
-		Id:      0,
-		Content: "gst",
-		date:    time.Time{},
-		Source:  nil,
-		Dest:    nil,
-		MsgType: "",
+		Msg: m,
 	}
 }

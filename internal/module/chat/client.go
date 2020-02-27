@@ -80,7 +80,7 @@ func (c *Client) readPump() {
 			break
 		}
 		logger.Debugf("[%s] %s %s", c.conn.RemoteAddr(), time.Now().String(), message)
-		c.hub.broadcast <- NewMsgResp(c, string(bytes.TrimSpace(bytes.Replace(message, newline, space, -1))), TextMsg)
+		c.hub.broadcast <- NewMsgResp(NewDefaultMsg(c, string(bytes.TrimSpace(bytes.Replace(message, newline, space, -1)))))
 	}
 }
 
@@ -105,7 +105,6 @@ func (c *Client) writePump() {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
@@ -141,7 +140,7 @@ func ServeWs(ctx *gin.Context, hub *Hub) {
 	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), id: registerClientId()}
 	client.hub.register <- client
 	client.send <- NewRegisterResp(client).Bytes()
-	hub.broadcast <- NewMsgResp(client, fmt.Sprintf("欢迎 [%s] 加入", client.getName()), TextMsg)
+	hub.broadcast <- NewMsgResp(NewSystemMsg(fmt.Sprintf("欢迎 [%s] 加入", client.getName())))
 	go client.writePump()
 	go client.readPump()
 }
