@@ -24,10 +24,31 @@ type _search struct {
 }
 
 func (*_search) List(q string) (total int64, data []interface{}, err error) {
+	type response struct {
+		Hits struct {
+			Total struct {
+				Value int64 `json:"value"`
+			} `json:"total"`
+			Hits []struct {
+				Source struct {
+					Date         time.Time `json:"date"`
+					LastEditTime time.Time `json:"last_edit_time"`
+					Author       string    `json:"author"`
+					Topic        string    `json:"topic"`
+					Id           string    `json:"id"`
+					Title        string    `json:"title"`
+				} `json:"_source"`
+				Highlight struct {
+					Content []string `json:"content"`
+				} `json:"highlight"`
+			} `json:"hits"`
+		} `json:"hits"`
+	}
 	var (
 		buf bytes.Buffer
-		r   map[string]interface{}
+		r   response
 	)
+
 	data = make([]interface{}, 0)
 	query := map[string]interface{}{
 		"_source": []string{"author", "title", "description", "topic", "id", "date", "last_edit_time"},
@@ -61,9 +82,16 @@ func (*_search) List(q string) (total int64, data []interface{}, err error) {
 	if err = json.NewDecoder(res.Body).Decode(&r); err != nil {
 		panic(errors.Wrap(err, "json decode 错误"))
 	}
-	for _, v := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
-		tmp := v.(map[string]interface{})["_source"].(map[string]interface{})
-		tmp["highlight"] = v.(map[string]interface{})["highlight"].(map[string]interface{})["content"]
+	total = r.Hits.Total.Value
+	for _, v := range r.Hits.Hits {
+		tmp := map[string]interface{}{
+			"date":      v.Source.Date,
+			"id":        v.Source.Id,
+			"author":    v.Source.Author,
+			"topic":     v.Source.Topic,
+			"title":     v.Source.Title,
+			"highlight": v.Highlight.Content,
+		}
 		data = append(data, tmp)
 	}
 	return

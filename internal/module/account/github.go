@@ -18,7 +18,7 @@ type _github struct {
 		Scope       string `json:"scope"`
 	}
 	u struct {
-		Id        int64    `json:"id"`
+		Id        int64  `json:"id"`
 		Url       string `json:"html_url"`
 		Name      string `json:"name"`
 		Email     string `json:"email"`
@@ -45,7 +45,7 @@ func (g *_github) Token(code string) (err error) {
 	}
 	retries := 3
 	var resp *http.Response
-	for retries > 0  {
+	for retries > 0 {
 		resp, err = client.Do(req)
 		if err == nil {
 			break
@@ -89,7 +89,8 @@ func (g *_github) User() (err error) {
 		retries--
 	}
 	if err != nil {
-		panic(errors.Wrap(err, "request github user failed"))
+		//panic(errors.Wrap(err, "request github user failed"))
+		return errors.New("国内请求github经常会有超时的情况，请理解！")
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {

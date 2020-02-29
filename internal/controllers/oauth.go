@@ -3,6 +3,7 @@ package controllers
 import (
 	"dyc/internal/helper"
 	"dyc/internal/module/account"
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 )
@@ -17,6 +18,7 @@ func (*_oauth) Github(ctx *gin.Context) {
 		helper.Fail(ctx, errors.Errorf("code参数丢失！"))
 		return
 	}
+	redirectUri := ctx.DefaultQuery("redirect_uri", "https://www.douyacun.com/")
 	github := account.NewGithub()
 	if err := github.Token(code); err != nil {
 		helper.Fail(ctx, err)
@@ -26,11 +28,15 @@ func (*_oauth) Github(ctx *gin.Context) {
 		helper.Fail(ctx, err)
 		return
 	}
-	_, err := account.Account.Create(github)
+	user, err := account.Account.Create(github)
 	if err != nil {
 		helper.Fail(ctx, err)
 	}
-	ctx.Redirect(302, "https://www.douyacun.com/")
+	data, err := json.Marshal(user)
+	if err == nil {
+		ctx.SetCookie("douyacun", string(data), 604800, "/", "douyacun.com", false, true)
+	}
+	ctx.Redirect(302, redirectUri)
 }
 
 func (*_oauth) Google(ctx *gin.Context) {
@@ -39,10 +45,14 @@ func (*_oauth) Google(ctx *gin.Context) {
 		helper.Fail(ctx, err)
 		return
 	}
-	data, err := account.Account.Create(google)
+	user, err := account.Account.Create(google)
 	if err != nil {
 		helper.Fail(ctx, err)
 		return
+	}
+	data, err := json.Marshal(user)
+	if err == nil {
+		ctx.SetCookie("douyacun", string(data), 604800, "/", "douyacun.com", false, true)
 	}
 	helper.Success(ctx, data)
 	return
