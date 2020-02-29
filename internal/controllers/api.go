@@ -24,6 +24,8 @@ func NewRouter(router *gin.Engine) {
 		api.GET("/ws/join", func(context *gin.Context) {
 			WS.Join(context, hub)
 		})
+		api.GET("/oauth/github", Oauth.Github)
+		api.POST("/oauth/google", Oauth.Google)
 	}
 	router.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
