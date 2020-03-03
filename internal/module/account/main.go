@@ -147,11 +147,11 @@ func (a *Account) SetCookie(ctx *gin.Context) {
 	if err != nil {
 		panic(errors.Wrap(err, "set cookie json encode failed"))
 	}
-	ctx.SetCookie(consts.CookieName, string(cookie), 604800, "/", "douyacun.com", false, true)
+	ctx.SetCookie(consts.CookieName, string(cookie), 604800, "/", ".douyacun.com", false, true)
 }
 
 func (a *Account) ExpireCookie(ctx *gin.Context) {
-	ctx.SetCookie(consts.CookieName, "", -1, "/", "douyacun.com", false, true)
+	ctx.SetCookie(consts.CookieName, "", -1, "/", ".douyacun.com", false, true)
 }
 
 func (c *Cookie) VerifyCookie() bool {
