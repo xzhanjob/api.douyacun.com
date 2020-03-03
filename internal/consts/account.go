@@ -55,6 +55,9 @@ const (
       },
       "url": {
         "type": "text"
+      },
+      "ip": {
+        "type": "keyword"
       }
     }
   }

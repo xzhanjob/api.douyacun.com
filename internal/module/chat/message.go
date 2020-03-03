@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"dyc/internal/module/account"
 	"sync/atomic"
 	"time"
 )
@@ -36,8 +37,8 @@ type Message struct {
 func (m *Message) toMap() map[string]interface{} {
 	return map[string]interface{}{
 		"source": map[string]interface{}{
-			"id":   m.Source.id,
-			"name": m.Source.getName(),
+			"id":   m.Source.account.Id,
+			"name": m.Source.account.Name,
 		},
 		"dest": map[string]interface{}{
 		},
@@ -50,12 +51,15 @@ func (m *Message) toMap() map[string]interface{} {
 	}
 }
 
-func NewSystemMsg(msg string) *Message {
+func WithSystemMsg(msg string) *Message {
+	a := account.NewAccount()
+	a.Name = "系统消息"
+	a.Id = "0"
 	return &Message{
 		Id:      0,
 		Content: msg,
 		date:    time.Time{},
-		Source:  &Client{name: "系统消息", id: 0},
+		Source:  &Client{account: a},
 		Dest:    nil,
 		MsgType: TextMsg,
 	}

@@ -3,7 +3,6 @@ package controllers
 import (
 	"dyc/internal/helper"
 	"dyc/internal/module/account"
-	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 )
@@ -28,14 +27,11 @@ func (*_oauth) Github(ctx *gin.Context) {
 		helper.Fail(ctx, err)
 		return
 	}
-	user, err := account.Account.Create(github)
+	user, err := account.NewAccount().Create(ctx, github)
 	if err != nil {
 		helper.Fail(ctx, err)
 	}
-	data, err := json.Marshal(user)
-	if err == nil {
-		ctx.SetCookie("douyacun", string(data), 604800, "/", "douyacun.com", false, true)
-	}
+	user.SetCookie(ctx)
 	ctx.Redirect(302, redirectUri)
 }
 
@@ -45,15 +41,13 @@ func (*_oauth) Google(ctx *gin.Context) {
 		helper.Fail(ctx, err)
 		return
 	}
-	user, err := account.Account.Create(google)
+	user, err := account.NewAccount().Create(ctx, google)
 	if err != nil {
 		helper.Fail(ctx, err)
 		return
 	}
-	data, err := json.Marshal(user)
-	if err == nil {
-		ctx.SetCookie("douyacun", string(data), 604800, "/", "douyacun.com", false, true)
-	}
-	helper.Success(ctx, data)
+	user.SetCookie(ctx)
+	helper.Success(ctx, user)
 	return
 }
+

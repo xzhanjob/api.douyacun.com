@@ -2,12 +2,13 @@ package chat
 
 import (
 	"bytes"
+	"dyc/internal/derror"
 	"dyc/internal/logger"
+	"dyc/internal/module/account"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
-	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -27,12 +28,12 @@ const (
 	maxMessageSize = 512
 )
 
-type _clientId int32
+type _clientId string
 
 var (
 	newline  = []byte{'\n'}
 	space    = []byte{' '}
-	clientId int32
+	clientId string
 )
 
 var upgrader = websocket.Upgrader{
@@ -53,9 +54,7 @@ type Client struct {
 	// Buffered channel of outbound messages.
 	send chan []byte
 
-	name string
-
-	id _clientId
+	account *account.Account
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -137,31 +136,22 @@ func ServeWs(ctx *gin.Context, hub *Hub) {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), id: registerClientId()}
+	a, ok := ctx.Get("account")
+	if !ok {
+		panic(derror.Unauthorized{})
+	}
+	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), account: a.(*account.Account)}
 	client.hub.register <- client
 	client.send <- NewRegisterResp(client).Bytes()
-	hub.broadcast <- NewMsgResp(NewSystemMsg(fmt.Sprintf("欢迎 [%s] 加入", client.getName())))
+	hub.broadcast <- NewMsgResp(WithSystemMsg(fmt.Sprintf("欢迎 [%s] 加入", client.account.Name)))
 	go client.writePump()
 	go client.readPump()
 }
 
-func registerClientId() _clientId {
-	atomic.AddInt32(&clientId, 1)
-	return _clientId(clientId)
-}
-
-
-func (c *Client) getName() string {
-	if c.name == "" {
-		return fmt.Sprintf("%d号客官", c.id)
-	} else {
-		return c.name
-	}
-}
 
 func (c *Client) toMap() map[string]interface{}  {
 	return map[string]interface{}{
-		"id": c.id,
-		"name": c.name,
+		"id": c.account.Id,
+		"name": c.account.Name,
 	}
 }

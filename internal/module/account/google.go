@@ -13,7 +13,7 @@ type _google struct {
 	Name      string `json:"name"`
 }
 
-func NewGoogle(ctx *gin.Context) (g *_github, err error) {
+func NewGoogle(ctx *gin.Context) (g *_google, err error) {
 	err = ctx.ShouldBindJSON(&g)
 	return
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"dyc/internal/controllers"
 	"dyc/internal/db"
+	"dyc/internal/derror"
 	"dyc/internal/logger"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -31,8 +32,7 @@ func Server() {
 	defer shutdown()
 	// 启动gin
 	engine = gin.New()
-	//engine.Use(recoverWithWrite(GetLogFD()))
-	engine.Use(gin.RecoveryWithWriter(GetLogFD()))
+	engine.Use(recoverWithWrite(GetLogFD()))
 
 	// 路由
 	controllers.NewRouter(engine)
@@ -87,20 +87,20 @@ func recoverWithWrite(out io.Writer) gin.HandlerFunc {
 				}
 				if brokenPipe {
 					logger.Debugf("%s\n%s%s", err, string(httpRequest), logger.Reset)
-				} else {
-					buf := new(bytes.Buffer) // the returned data
-					err := errors.WithStack(err.(error))
-					fmt.Fprintf(buf,"%+v", err)
-					logger.Errorf("[Recovery] panic recovered:\n%s\n%s", strings.Join(headers, "\r\n"),  buf.String())
-				}
-				// If the connection is dead, we can't write a status to it.
-				if brokenPipe {
 					c.Error(err.(error)) // nolint: errcheck
-					c.Abort()
 				} else {
-					c.JSON(http.StatusInternalServerError, gin.H{"msg": "服务器出错了"})
-					c.Abort()
+					switch err.(type) {
+					case derror.Unauthorized:
+						c.JSON(http.StatusOK, gin.H{"msg": "unauthorized", "code": http.StatusUnauthorized})
+					default:
+						buf := new(bytes.Buffer) // the returned data
+						err := errors.WithStack(err.(error))
+						fmt.Fprintf(buf,"%+v", err)
+						logger.Errorf("[Recovery] panic recovered:\n%s\n%s", strings.Join(headers, "\r\n"),  buf.String())
+						c.JSON(http.StatusInternalServerError, gin.H{"msg": "服务器出错了", "code": http.StatusInternalServerError})
+					}
 				}
+				c.Abort()
 			}
 		}()
 		c.Next()

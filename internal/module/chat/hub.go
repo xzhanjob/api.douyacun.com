@@ -12,7 +12,7 @@ type Responser interface {
 // clients.
 type Hub struct {
 	// Registered clients.
-	clients map[_clientId]*Client
+	clients map[string]*Client
 
 	// Inbound messages from the clients.
 	broadcast chan Responser
@@ -29,7 +29,7 @@ func NewHub() *Hub {
 		broadcast:  make(chan Responser),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
-		clients:    make(map[_clientId]*Client),
+		clients:    make(map[string]*Client),
 	}
 }
 
@@ -37,10 +37,14 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.register:
-			h.clients[client.id] = client
+			if otherClient, ok := h.clients[client.account.Id]; ok {
+				otherClient.conn.Close()
+				client.send <- NewMsgResp(WithSystemMsg("该账号的其他连接已关闭")).Bytes()
+			}
+			h.clients[client.account.Id] = client
 		case client := <-h.unregister:
-			if _, ok := h.clients[client.id]; ok {
-				delete(h.clients, client.id)
+			if _, ok := h.clients[client.account.Id]; ok {
+				delete(h.clients, client.account.Id)
 				close(client.send)
 			}
 		case message := <-h.broadcast:
