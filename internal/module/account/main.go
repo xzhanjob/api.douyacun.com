@@ -5,7 +5,6 @@ import (
 	"dyc/internal/consts"
 	"dyc/internal/db"
 	"dyc/internal/helper"
-	"dyc/internal/logger"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
@@ -69,6 +68,56 @@ func (a *Account) Create(ctx *gin.Context, i Accouter) (data *Account, err error
 	}
 	data.Id = id
 	return
+}
+
+func (a *Account) All(name string) (*[]Account, error) {
+	var (
+		buf bytes.Buffer
+		err error
+	)
+	query := map[string]interface{}{
+		"size": 20,
+	}
+	if len(name) > 0 {
+		query["query"] = map[string]interface{}{
+			"match": map[string]interface{}{
+				"name.pinyin": name,
+			},
+		}
+	}
+	if err = json.NewEncoder(&buf).Encode(query); err != nil {
+		panic(errors.Wrap(err, "account list query json encode failed"))
+	}
+
+	type esResponse struct {
+		Hits struct {
+			Total struct {
+				Value int `json:"value"`
+			} `json:"total"`
+			Hits []struct {
+				Source Account `json:"_source"`
+				Id     string  `json:"_id"`
+			} `json:"hits"`
+		} `json:"hits"`
+	}
+	var r esResponse
+	res, err := db.ES.Search(
+		db.ES.Search.WithIndex(consts.IndicesAccountConst),
+		db.ES.Search.WithBody(&buf),
+	)
+	if err != nil {
+		panic(errors.Wrap(err, "account list es search error"))
+	}
+	defer res.Body.Close()
+	if err = json.NewDecoder(res.Body).Decode(&r); err != nil {
+		panic(errors.Wrapf(err, "[%d] es response body json decode failed", res.StatusCode))
+	}
+	t := make([]Account, 0)
+	for _, v := range r.Hits.Hits {
+		v.Source.Id = v.Id
+		t = append(t, v.Source)
+	}
+	return &t, nil
 }
 
 func (a *Account) EnableAccess() bool {
@@ -160,7 +209,6 @@ func (c *Cookie) VerifyCookie() bool {
 	if err != nil {
 		return false
 	}
-	logger.Debugf("\naccount: %s\nc.md5 %s\nmd5 calculate: %s", string(a), c.Md5, helper.Md532(a))
 	if c.Md5 != helper.Md532(a) {
 		return false
 	}

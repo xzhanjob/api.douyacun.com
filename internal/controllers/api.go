@@ -26,12 +26,14 @@ func NewRouter(router *gin.Engine) {
 		api.GET("/oauth/github", Oauth.Github)
 		api.POST("/oauth/google", Oauth.Google)
 		// websocket
-		ws := api.Group("/ws", middleware.LoginCheck())
+		auth := api.Group("/", middleware.LoginCheck())
 		{
-			ws.GET("/join", func(context *gin.Context) {
+			auth.GET("/ws/join", func(context *gin.Context) {
 				WS.Join(context, hub)
 			})
-			ws.POST("/channel", Channel.Private)
+			auth.POST("/ws/channel", Channel.Create)
+			auth.GET("/ws/channel/list", Channel.List)
+			auth.GET("/account/list", Account.List)
 		}
 	}
 	router.GET("/ping", func(c *gin.Context) {
