@@ -13,10 +13,14 @@ import (
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"strings"
+	"sync"
 	"time"
 )
 
-var Channel *channel
+var (
+	Channel        *channel
+	ChannelMembers *channelMembers
+)
 
 type channel struct {
 	Creator   *account.Account  `json:"creator"`
@@ -24,6 +28,12 @@ type channel struct {
 	Title     string            `json:"title"`
 	CreatedAt time.Time         `json:"created_at"`
 	Id        string            `json:"id"`
+	Type      string            `json:"type"`
+}
+
+type channelMembers struct {
+	m  map[string]*channel
+	mu sync.RWMutex
 }
 
 type esResponse struct {
@@ -46,11 +56,30 @@ func (*channel) Create(ctx *gin.Context, v *validate.ChannelCreateValidator) (c 
 		}
 		// 创建channel
 		var (
-			buf bytes.Buffer
+			buf   bytes.Buffer
+			title = v.Title
 		)
-		m := account.NewAccount().Mget(append(v.Members, a.(*account.Account).Id))
+		// 标题设置
+		m := account.NewAccount().Mget(v.Members)
+		if len(*m) == 0 {
+			return c, errors.Errorf("members not found")
+		}
+		if strings.TrimSpace(v.Title) == "" {
+			if v.Type == consts.TypeChannelPrivate {
+				title = (*m)[0].Name
+			} else if v.Type == consts.TypeChannelPublic {
+				name := make([]string, 0)
+				for _, v := range *m {
+					name = append(name, v.Name)
+				}
+				if len(name) > 20 {
+					name = name[:20]
+				}
+				title = strings.Join(name, "、")
+			}
+		}
 		query := map[string]interface{}{
-			"title":      v.Title,
+			"title":      title,
 			"creator":    a,
 			"created_at": time.Now(),
 			"type":       v.Type,
@@ -78,7 +107,7 @@ func (*channel) Create(ctx *gin.Context, v *validate.ChannelCreateValidator) (c 
 		c = &channel{
 			Id:        r.Id,
 			Members:   *m,
-			Title:     v.Title,
+			Title:     title,
 			Creator:   a.(*account.Account),
 			CreatedAt: time.Now(),
 		}
@@ -147,17 +176,21 @@ func (*channel) Get(ctx *gin.Context, v *validate.ChannelCreateValidator) (c *ch
 }
 
 // channel列表
-func (*channel) List(ctx *gin.Context)  (*[]channel, error) {
+func (*channel) List(ctx *gin.Context) (*[]channel, error) {
 	a, _ := ctx.Get("account")
 	query := fmt.Sprintf(`
 {
   "query": {
-    "term": {
-      "members.id": "%s"
+    "bool": {
+      "should": [
+        {"term": { "creator.id": "%s"}},
+        {"term": { "members.id": "%s"}},
+		{"term": { "_id": { "value": "douyacun", "boost": 10 }}}
+      ]
     }
   }
 }
-`, a.(*account.Account).Id)
+`, a.(*account.Account).Id, a.(*account.Account).Id)
 	res, err := db.ES.Search(
 		db.ES.Search.WithIndex(consts.IndicesChannelConst),
 		db.ES.Search.WithBody(strings.NewReader(query)),
@@ -183,4 +216,8 @@ func (*channel) List(ctx *gin.Context)  (*[]channel, error) {
 		c = append(c, v.Source)
 	}
 	return &c, nil
+}
+
+func (m *channelMembers) Join() {
+
 }
