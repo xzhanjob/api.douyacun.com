@@ -26,7 +26,7 @@ func (*_channel) Create(ctx *gin.Context) {
 		return
 	}
 	if v.Type == consts.TypeChannelPrivate {
-		if c, ok := chat.Channel.Get(ctx, v); ok {
+		if c, ok := chat.Channel.Belong(ctx, v); ok {
 			helper.Success(ctx, c)
 			return
 		}

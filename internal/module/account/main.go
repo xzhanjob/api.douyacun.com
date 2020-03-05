@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -35,6 +36,10 @@ type Account struct {
 
 func NewAccount() *Account {
 	return &Account{}
+}
+
+func NewSystemAccount() *Account {
+	return &Account{Id: "0", Name: "系统消息"}
 }
 
 func (a *Account) Create(ctx *gin.Context, i Accouter) (data *Account, err error) {
@@ -174,6 +179,39 @@ func (a *Account) Mget(ids []string) *[]Account {
 	}
 
 	return &m
+}
+
+func (a *Account) Get(id string) (*Account, error) {
+	type esResponse struct {
+		Id     string  `json:"_id"`
+		Source Account `json:"_source"`
+	}
+	res, err := db.ES.Index(
+		consts.IndicesAccountConst,
+		strings.NewReader(``),
+		db.ES.Index.WithDocumentID(id),
+	)
+	if err != nil {
+		panic(errors.Wrap(err, "es error"))
+	}
+	defer res.Body.Close()
+	resp, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		panic(errors.Errorf("[%d] es response body read error", res.StatusCode))
+	}
+
+	if res.IsError() {
+		if res.StatusCode == http.StatusNotFound {
+			return nil, errors.Errorf("账户(%s)不存在", id)
+		}
+		panic(errors.Errorf("[%d] es response: %s", res.StatusCode, string(resp)))
+	}
+	var r esResponse
+	if err = json.Unmarshal(resp, &r); err != nil {
+		panic(errors.Wrapf(err, "es response: %s", string(resp)))
+	}
+	s := &r.Source
+	return s, nil
 }
 
 type Cookie struct {

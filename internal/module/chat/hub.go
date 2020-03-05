@@ -1,11 +1,14 @@
 package chat
 
 import (
+	"dyc/internal/consts"
 	"dyc/internal/logger"
 )
 
 type Responser interface {
+	Members() []string
 	Bytes() []byte
+	GetChannelID() string
 }
 
 // Hub maintains the set of active clients and broadcasts messages to the
@@ -39,7 +42,7 @@ func (h *Hub) Run() {
 		case client := <-h.register:
 			if otherClient, ok := h.clients[client.account.Id]; ok {
 				otherClient.conn.Close()
-				client.send <- NewMsgResp(WithSystemMsg("该账号的其他连接已关闭")).Bytes()
+				client.send <- NewTipMessage("该账号的其他连接已关闭").Bytes()
 			}
 			h.clients[client.account.Id] = client
 		case client := <-h.unregister:
@@ -49,12 +52,25 @@ func (h *Hub) Run() {
 			}
 		case message := <-h.broadcast:
 			logger.Debugf("广播一条新消息: %s", message.Bytes())
-			for id, client := range h.clients {
-				select {
-				case client.send <- message.Bytes():
-				default:
-					close(client.send)
-					delete(h.clients, id)
+			if message.GetChannelID() == consts.GlobalChannelId {
+				for id, client := range h.clients {
+					select {
+					case client.send <- message.Bytes():
+					default:
+						close(client.send)
+						delete(h.clients, id)
+					}
+				}
+			} else {
+				for _, id := range message.Members() {
+					if client, ok := h.clients[id]; ok {
+						select {
+						case client.send <- message.Bytes():
+						default:
+							close(client.send)
+							delete(h.clients, id)
+						}
+					}
 				}
 			}
 		}

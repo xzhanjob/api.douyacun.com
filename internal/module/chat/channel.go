@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"io/ioutil"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -19,7 +20,10 @@ import (
 
 var (
 	Channel        *channel
-	ChannelMembers *channelMembers
+	ChannelMembers = &channelMembers{
+		mu: &sync.RWMutex{},
+		m:  make(map[string][]account.Account, 20),
+	}
 )
 
 type channel struct {
@@ -29,11 +33,6 @@ type channel struct {
 	CreatedAt time.Time         `json:"created_at"`
 	Id        string            `json:"id"`
 	Type      string            `json:"type"`
-}
-
-type channelMembers struct {
-	m  map[string]*channel
-	mu sync.RWMutex
 }
 
 type esResponse struct {
@@ -91,6 +90,7 @@ func (*channel) Create(ctx *gin.Context, v *validate.ChannelCreateValidator) (c 
 		res, err := db.ES.Index(
 			consts.IndicesChannelConst,
 			strings.NewReader(buf.String()),
+			db.ES.Index.WithRefresh(`true`),
 		)
 		if err != nil {
 			panic(errors.Wrap(err, "es create channel failed"))
@@ -118,7 +118,7 @@ func (*channel) Create(ctx *gin.Context, v *validate.ChannelCreateValidator) (c 
 }
 
 // 获取channel
-func (*channel) Get(ctx *gin.Context, v *validate.ChannelCreateValidator) (c *channel, ok bool) {
+func (*channel) Belong(ctx *gin.Context, v *validate.ChannelCreateValidator) (c *channel, ok bool) {
 	if a, ok := ctx.Get("account"); ok {
 		query := fmt.Sprintf(`
 {
@@ -175,6 +175,37 @@ func (*channel) Get(ctx *gin.Context, v *validate.ChannelCreateValidator) (c *ch
 	}
 }
 
+func (*channel) Get(id string) (*channel, error) {
+	type esResponse struct {
+		Id     string  `json:"_id"`
+		Source channel `json:"_source"`
+	}
+	res, err := db.ES.Get(
+		consts.IndicesChannelConst,
+		id,
+	)
+	if err != nil {
+		panic(errors.Wrap(err, "es error"))
+	}
+	defer res.Body.Close()
+	resp, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		panic(errors.Errorf("[%d] es response body read error", res.StatusCode))
+	}
+	if res.IsError() {
+		if res.StatusCode == http.StatusNotFound {
+			return nil, errors.Errorf("频道(%s)不存在", id)
+		}
+		panic(errors.Errorf("[%d] es response: %s", res.StatusCode, string(resp)))
+	}
+	var r esResponse
+	if err = json.Unmarshal(resp, &r); err != nil {
+		panic(errors.Wrapf(err, "es response: %s", string(resp)))
+	}
+	s := &r.Source
+	return s, nil
+}
+
 // channel列表
 func (*channel) List(ctx *gin.Context) (*[]channel, error) {
 	a, _ := ctx.Get("account")
@@ -218,6 +249,75 @@ func (*channel) List(ctx *gin.Context) (*[]channel, error) {
 	return &c, nil
 }
 
-func (m *channelMembers) Join() {
+type channelMembers struct {
+	m  map[string][]account.Account
+	mu *sync.RWMutex
+}
 
+func (m *channelMembers) Join(channelId string, accountId string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	members, ok := m.m[channelId]
+	if !ok {
+		c, err := Channel.Get(channelId)
+		if err != nil {
+			return err
+		}
+		members = c.Members
+	}
+	a, err := account.NewAccount().Get(accountId)
+	if err != nil {
+		return err
+	}
+	members = append(members, *a)
+	m.m[channelId] = members
+	var buf bytes.Buffer
+	if err = json.NewEncoder(&buf).Encode(members); err != nil {
+		panic(errors.Wrap(err, "members json encode error"))
+	}
+	res, err := db.ES.Update(
+		consts.IndicesChannelConst,
+		channelId,
+		strings.NewReader(buf.String()),
+	)
+	if err != nil {
+		panic(errors.Wrap(err, "channel members update error"))
+	}
+	defer res.Body.Close()
+	resp, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		panic(errors.Wrap(err, "channel members update response read error"))
+	}
+	if res.IsError() {
+		panic(errors.Errorf("[%d] channel members update response: %s", res.StatusCode, resp))
+	}
+	return nil
+}
+
+func (m *channelMembers) Members(channelId string) (*[]account.Account, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	members, ok := m.m[channelId]
+	if !ok {
+		ch, err := Channel.Get(channelId)
+		if err != nil {
+			return nil, err
+		}
+		members = ch.Members
+		members = append(members, *ch.Creator)
+		m.m[channelId] = members
+	}
+	return &members, nil
+}
+
+func (m *channelMembers) MembersIds(channelId string) ([]string, error) {
+	mm, err := m.Members(channelId)
+	if err != nil {
+		return nil, err
+	}
+	var data []string
+	for _, v := range *mm {
+		data = append(data, v.Id)
+	}
+	return data, nil
 }

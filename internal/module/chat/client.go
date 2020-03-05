@@ -1,10 +1,11 @@
 package chat
 
 import (
-	"bytes"
+	"dyc/internal/consts"
 	"dyc/internal/derror"
 	"dyc/internal/logger"
 	"dyc/internal/module/account"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -28,12 +29,9 @@ const (
 	maxMessageSize = 512
 )
 
-type _clientId string
-
 var (
-	newline  = []byte{'\n'}
-	space    = []byte{' '}
-	clientId string
+	newline = []byte{'\n'}
+	space   = []byte{' '}
 )
 
 var upgrader = websocket.Upgrader{
@@ -79,7 +77,12 @@ func (c *Client) readPump() {
 			break
 		}
 		logger.Debugf("[%s] %s %s", c.conn.RemoteAddr(), time.Now().String(), message)
-		c.hub.broadcast <- NewMsgResp(NewDefaultMsg(c, string(bytes.TrimSpace(bytes.Replace(message, newline, space, -1)))))
+		m := ClientMessage{}
+		if err := json.Unmarshal(message, &m); err == nil {
+			c.hub.broadcast <- NewDefaultMsg(c, m.Content, m.ChannelId)
+		} else {
+			logger.Errorf("client read Pump error: %s", err)
+		}
 	}
 }
 
@@ -142,16 +145,14 @@ func ServeWs(ctx *gin.Context, hub *Hub) {
 	}
 	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), account: a.(*account.Account)}
 	client.hub.register <- client
-	client.send <- NewRegisterResp(client).Bytes()
-	hub.broadcast <- NewMsgResp(WithSystemMsg(fmt.Sprintf("欢迎 [%s] 加入", client.account.Name)))
+	hub.broadcast <- NewSystemMsg(fmt.Sprintf("欢迎 [%s] 加入", client.account.Name), consts.GlobalChannelId)
 	go client.writePump()
 	go client.readPump()
 }
 
-
-func (c *Client) toMap() map[string]interface{}  {
+func (c *Client) toMap() map[string]interface{} {
 	return map[string]interface{}{
-		"id": c.account.Id,
+		"id":   c.account.Id,
 		"name": c.account.Name,
 	}
 }

@@ -5,6 +5,7 @@ const (
 	TypeChannelPrivate  = "private"
 	TypeChannelPublic   = "public"
 
+	GlobalChannelId = "douyacun"
 	IndicesChannleMap = `
 {
   "settings": {

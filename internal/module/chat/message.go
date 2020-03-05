@@ -1,8 +1,11 @@
 package chat
 
 import (
+	"bytes"
+	"dyc/internal/helper"
 	"dyc/internal/module/account"
-	"sync/atomic"
+	"encoding/json"
+	"github.com/pkg/errors"
 	"time"
 )
 
@@ -11,76 +14,95 @@ import (
 type msgType string
 
 const (
-	TextMsg msgType = "TEXT"
-	ImgMsg  msgType = "IMAGE"
-	FileMsg msgType = "FILE"
+	TextMsg   msgType = "TEXT"
+	ImgMsg    msgType = "IMAGE"
+	FileMsg   msgType = "FILE"
+	SystemMsg msgType = "SYSTEM"
+	TipMsg    msgType = "TIP"
 )
 
-var msgId int64
-
-type Message struct {
+type ServerMessage struct {
 	// 消息id
-	Id int64
-	// 内容
-	Content string
-	// 发送时间
-	date time.Time
+	Id string `json:"id"`
+	// 时间
+	Date time.Time `json:"date"`
 	// 发送者
-	Source *Client
-	// 接受者
-	Dest *Client
-	// 消息类型
-	MsgType msgType
+	Sender *account.Account `json:"sender"`
+	// 类型
+	Type msgType `json:"type"`
+	// 内容
+	Content string `json:"content"`
+	// channel
+	ChannelId string `json:"channel_id"`
 }
 
-// 实际发送结构体
-func (m *Message) toMap() map[string]interface{} {
-	return map[string]interface{}{
-		"source": map[string]interface{}{
-			"id":   m.Source.account.Id,
-			"name": m.Source.account.Name,
-		},
-		"dest": map[string]interface{}{
-		},
-		"date": m.date,
-		"context": map[string]interface{}{
-			"id":      m.Id,
-			"type":    m.MsgType,
-			"content": m.Content,
-		},
-	}
+type ClientMessage struct {
+	ChannelId string `json:"channelId"`
+	Content   string `json:"content"`
 }
 
-func WithSystemMsg(msg string) *Message {
+func NewSystemMsg(msg string, channelId string) *ServerMessage {
 	a := account.NewAccount()
 	a.Name = "系统消息"
 	a.Id = "0"
-	return &Message{
-		Id:      0,
-		Content: msg,
-		date:    time.Time{},
-		Source:  &Client{account: a},
-		Dest:    nil,
-		MsgType: TextMsg,
+	m := &ServerMessage{
+		Content:   msg,
+		Date:      time.Time{},
+		Sender:    a,
+		Type:      SystemMsg,
+		ChannelId: channelId,
 	}
+	m.Id = m.GenId()
+	return m
 }
 
-func NewDefaultMsg(c *Client, msg string) *Message {
-	return &Message{
-		Id:      0,
-		Content: msg,
-		date:    time.Time{},
-		Source:  c,
-		Dest:    nil,
-		MsgType: TextMsg,
+func NewDefaultMsg(c *Client, msg string, channelId string) *ServerMessage {
+	m := &ServerMessage{
+		Content:   msg,
+		Sender:    c.account,
+		Type:      TextMsg,
+		Date:      time.Now(),
+		ChannelId: channelId,
 	}
+	m.Id = m.GenId()
+	return m
 }
 
-func (m *Message) GetClient() *Client {
-	return m.Source
+func NewTipMessage(msg string) *ServerMessage {
+	m := &ServerMessage{
+		Content: msg,
+		Date:    time.Time{},
+		Sender:  account.NewSystemAccount(),
+		Type:    TipMsg,
+	}
+	m.Id = m.GenId()
+	return m
 }
 
-func genMsgId() int64 {
-	atomic.AddInt64(&msgId, 1)
-	return msgId
+func (m *ServerMessage) GenId() string {
+	var buf bytes.Buffer
+	buf.WriteString(m.Date.String())
+	buf.WriteString(m.Sender.Id)
+	buf.WriteString(m.Content)
+	return helper.Md532(buf.Bytes())
+}
+
+func (m *ServerMessage) Bytes() []byte {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(m); err != nil {
+		panic(errors.Wrap(err, "message json encode error"))
+	}
+	return buf.Bytes()
+}
+
+func (m *ServerMessage) Members() []string {
+	ids, err := ChannelMembers.MembersIds(m.ChannelId)
+	if err != nil {
+		return nil
+	}
+	return ids
+}
+
+func (m *ServerMessage) GetChannelID() string {
+	return m.ChannelId
 }
