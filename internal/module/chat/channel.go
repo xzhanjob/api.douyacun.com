@@ -33,6 +33,7 @@ type channel struct {
 	CreatedAt time.Time         `json:"created_at"`
 	Id        string            `json:"id"`
 	Type      string            `json:"type"`
+	Messages  []ServerMessage   `json:"messages"`
 }
 
 type esResponse struct {

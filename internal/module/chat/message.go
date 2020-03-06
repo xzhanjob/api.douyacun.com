@@ -2,10 +2,15 @@ package chat
 
 import (
 	"bytes"
+	"dyc/internal/consts"
+	"dyc/internal/db"
 	"dyc/internal/helper"
+	"dyc/internal/logger"
 	"dyc/internal/module/account"
 	"encoding/json"
 	"github.com/pkg/errors"
+	"io/ioutil"
+	"strings"
 	"time"
 )
 
@@ -37,7 +42,7 @@ type ServerMessage struct {
 }
 
 type ClientMessage struct {
-	ChannelId string `json:"channelId"`
+	ChannelId string `json:"channel_id"`
 	Content   string `json:"content"`
 }
 
@@ -53,6 +58,7 @@ func NewSystemMsg(msg string, channelId string) *ServerMessage {
 		ChannelId: channelId,
 	}
 	m.Id = m.GenId()
+	m.store()
 	return m
 }
 
@@ -65,6 +71,7 @@ func NewDefaultMsg(c *Client, msg string, channelId string) *ServerMessage {
 		ChannelId: channelId,
 	}
 	m.Id = m.GenId()
+	m.store()
 	return m
 }
 
@@ -105,4 +112,27 @@ func (m *ServerMessage) Members() []string {
 
 func (m *ServerMessage) GetChannelID() string {
 	return m.ChannelId
+}
+
+func (m *ServerMessage) store() bool {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(m); err != nil {
+		logger.Wrapf(err, "message store json error")
+	}
+	res, err := db.ES.Index(
+		consts.IndicesMessageConst,
+		strings.NewReader(buf.String()),
+		db.ES.Index.WithDocumentID(m.Id),
+	)
+	if err != nil {
+		logger.Wrapf(err, "message store es error")
+		return false
+	}
+	defer res.Body.Close()
+	if res.IsError() {
+		resp, _ := ioutil.ReadAll(res.Body)
+		logger.Errorf("[%d] es response: %s", res.StatusCode, string(resp))
+		return false
+	}
+	return true
 }

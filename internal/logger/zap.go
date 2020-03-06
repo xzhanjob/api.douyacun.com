@@ -1,6 +1,9 @@
 package logger
 
 import (
+	"bytes"
+	"fmt"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"io"
@@ -104,6 +107,13 @@ func Error(args ...interface{}) {
 
 func Errorf(template string, args ...interface{}) {
 	log.Errorf(template, args...)
+}
+
+func Wrapf(err error, template string, args ...interface{})  {
+	buf := new(bytes.Buffer) // the returned data
+	e := errors.WithStack(err.(error))
+	fmt.Fprintf(buf,"%+v", e)
+	Errorf("[Recovery] panic recovered: %s",   buf.String())
 }
 
 func Fatal(args ...interface{}) {
