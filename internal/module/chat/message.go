@@ -26,6 +26,7 @@ const (
 	TipMsg    msgType = "TIP"
 )
 
+
 type ServerMessage struct {
 	// 消息id
 	Id string `json:"id"`
@@ -52,7 +53,7 @@ func NewSystemMsg(msg string, channelId string) *ServerMessage {
 	a.Id = "0"
 	m := &ServerMessage{
 		Content:   msg,
-		Date:      time.Time{},
+		Date:      time.Now(),
 		Sender:    a,
 		Type:      SystemMsg,
 		ChannelId: channelId,
@@ -118,6 +119,10 @@ func (m *ServerMessage) store() bool {
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(m); err != nil {
 		logger.Wrapf(err, "message store json error")
+		return false
+	}
+	if m.Id == "" {
+		return false
 	}
 	res, err := db.ES.Index(
 		consts.IndicesMessageConst,

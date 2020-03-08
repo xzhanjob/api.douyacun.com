@@ -1,12 +1,10 @@
 package chat
 
 import (
-	"dyc/internal/consts"
 	"dyc/internal/derror"
 	"dyc/internal/logger"
 	"dyc/internal/module/account"
 	"encoding/json"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -145,7 +143,7 @@ func ServeWs(ctx *gin.Context, hub *Hub) {
 	}
 	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), account: a.(*account.Account)}
 	client.hub.register <- client
-	hub.broadcast <- NewSystemMsg(fmt.Sprintf("欢迎 [%s] 加入", client.account.Name), consts.GlobalChannelId)
+	//hub.broadcast <- NewSystemMsg(fmt.Sprintf("欢迎 [%s] 加入", client.account.Name), consts.GlobalChannelId)
 	go client.writePump()
 	go client.readPump()
 }

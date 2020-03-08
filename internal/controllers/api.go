@@ -32,7 +32,8 @@ func NewRouter(router *gin.Engine) {
 				WS.Join(context, hub)
 			})
 			auth.POST("/ws/channel", Channel.Create)
-			auth.GET("/ws/channel/list", Channel.List)
+			auth.GET("/ws/channel/subscribe", Channel.subscribe)
+			auth.GET("/ws/channel/messages", Channel.Messages)
 			auth.GET("/account/list", Account.List)
 		}
 	}

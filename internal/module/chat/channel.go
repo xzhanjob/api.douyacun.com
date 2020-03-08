@@ -5,6 +5,7 @@ import (
 	"dyc/internal/consts"
 	"dyc/internal/db"
 	"dyc/internal/derror"
+	"dyc/internal/logger"
 	"dyc/internal/module/account"
 	"dyc/internal/validate"
 	"encoding/json"
@@ -13,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -33,10 +35,15 @@ type channel struct {
 	CreatedAt time.Time         `json:"created_at"`
 	Id        string            `json:"id"`
 	Type      string            `json:"type"`
-	Messages  []ServerMessage   `json:"messages"`
 }
 
-type esResponse struct {
+type channelWithMessage struct {
+	channel
+	Messages []ServerMessage `json:"messages"`
+	Total uint64 `json:"total"`
+}
+
+type channelResponse struct {
 	Hits struct {
 		Total struct {
 			Value int `json:"value"`
@@ -44,6 +51,18 @@ type esResponse struct {
 		Hits []struct {
 			Source channel `json:"_source"`
 			Id     string  `json:"_id"`
+		} `json:"hits"`
+	} `json:"hits"`
+}
+
+type serverMsgResponse struct {
+	Hits struct {
+		Total struct {
+			Value uint64 `json:"value"`
+		} `json:"total"`
+		Hits []struct {
+			Source ServerMessage `json:"_source"`
+			Id     string        `json:"_id"`
 		} `json:"hits"`
 	} `json:"hits"`
 }
@@ -63,6 +82,10 @@ func (*channel) Create(ctx *gin.Context, v *validate.ChannelCreateValidator) (c 
 		m := account.NewAccount().Mget(v.Members)
 		if len(*m) == 0 {
 			return c, errors.Errorf("members not found")
+		}
+		for k, _ := range *m {
+			// create_at 记录加入时间
+			(*m)[k].CreateAt = time.Now()
 		}
 		if strings.TrimSpace(v.Title) == "" {
 			if v.Type == consts.TypeChannelPrivate {
@@ -119,7 +142,7 @@ func (*channel) Create(ctx *gin.Context, v *validate.ChannelCreateValidator) (c 
 }
 
 // 获取channel
-func (*channel) Belong(ctx *gin.Context, v *validate.ChannelCreateValidator) (c *channel, ok bool) {
+func (*channel) Private(ctx *gin.Context, v *validate.ChannelCreateValidator) (c *channel, ok bool) {
 	if a, ok := ctx.Get("account"); ok {
 		query := fmt.Sprintf(`
 {
@@ -161,7 +184,7 @@ func (*channel) Belong(ctx *gin.Context, v *validate.ChannelCreateValidator) (c 
 			panic(errors.Wrapf(err, "[%d] es response: %s", res.StatusCode, respBody))
 		}
 
-		var r esResponse
+		var r channelResponse
 		if err = json.Unmarshal(respBody, &r); err != nil {
 			panic(errors.Wrapf(err, "channel exists es response: %s", respBody))
 		}
@@ -201,14 +224,14 @@ func (*channel) Get(id string) (*channel, error) {
 	}
 	var r esResponse
 	if err = json.Unmarshal(resp, &r); err != nil {
-		panic(errors.Wrapf(err, "es response: %s", string(resp)))
+		return nil, errors.Wrapf(err, "es response: %s", string(resp))
 	}
 	s := &r.Source
 	return s, nil
 }
 
-// channel列表
-func (*channel) List(ctx *gin.Context) (*[]channel, error) {
+// 订阅channel
+func (*channel) Subscribe(ctx *gin.Context) (*[]channel, error) {
 	a, _ := ctx.Get("account")
 	query := fmt.Sprintf(`
 {
@@ -238,7 +261,7 @@ func (*channel) List(ctx *gin.Context) (*[]channel, error) {
 	if res.IsError() {
 		panic(errors.Errorf("[%d] es response: %s", res.StatusCode, resp))
 	}
-	var r esResponse
+	var r channelResponse
 	if err = json.Unmarshal(resp, &r); err != nil {
 		panic(errors.Wrapf(err, "json decode failed response: %s", resp))
 	}
@@ -248,6 +271,107 @@ func (*channel) List(ctx *gin.Context) (*[]channel, error) {
 		c = append(c, v.Source)
 	}
 	return &c, nil
+}
+
+// 订阅channel，历史记录
+func (c *channel) SubscribeWithMsg(ctx *gin.Context, history *map[string]time.Time) (*[]channelWithMessage, error) {
+	channels, err := c.Subscribe(ctx)
+	if err != nil {
+		return nil, err
+	}
+	a, _ := ctx.Get("account")
+	var data []channelWithMessage
+	for _, v := range *channels {
+		var (
+			start = time.Now()
+			end = time.Now()
+		)
+		start = v.GetJoinTime(a.(*account.Account).Id)
+		total, messages := c.Messages(v.Id, start, end)
+		t := channelWithMessage{}
+		t.channel = v
+		t.Messages = *messages
+		t.Total = total
+		data = append(data, t)
+	}
+	return &data, nil
+}
+
+type messageSlice []ServerMessage
+
+func (m *messageSlice) Len() int {
+	return len(*m)
+}
+
+func (m *messageSlice) Less(i, j int) bool {
+	return (*m)[i].Date.Before((*m)[j].Date)
+}
+
+func (m *messageSlice) Swap(i, j int) {
+	(*m)[i], (*m)[j] = (*m)[j], (*m)[i]
+}
+
+func (*channel) Messages(channelId string, start time.Time, end time.Time) (uint64, *messageSlice) {
+	m := make(messageSlice, 0)
+	format := "2006-01-02T15:04:05.999999999+08:00"
+	query := fmt.Sprintf(`
+{
+  "query": {
+    "bool": {
+      "must": [
+        {"term": {"channel_id":  "%s"}},
+        {"range": { "date": {"gt": "%s", "lt": "%s"}}}
+      ]
+    }
+  },
+  "sort": { "date": { "order": "desc" } },
+  "size": 20
+}`, channelId, start.Format(format), end.Format(format))
+	logger.Debugf("%s", query)
+	res, err := db.ES.Search(
+		db.ES.Search.WithIndex(consts.IndicesMessageConst),
+		db.ES.Search.WithBody(strings.NewReader(query)),
+	)
+	if err != nil {
+		panic(errors.Wrap(err, "channel messages get error"))
+	}
+	defer res.Body.Close()
+	resp, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		panic(errors.Wrap(err, "es response body read error"))
+	}
+	if res.IsError() {
+		panic(errors.Errorf("[%d] es response: %s", res.StatusCode, resp))
+	}
+	var r serverMsgResponse
+	if err = json.Unmarshal(resp, &r); err != nil {
+		panic(errors.Wrapf(err, "json decode failed es response: %s", resp))
+	}
+	for _, v := range r.Hits.Hits {
+		m = append(m, v.Source)
+	}
+	sort.Sort(&m)
+
+	total := r.Hits.Total.Value
+	if total > 20 {
+		total -= 20
+	} else {
+		total = 0
+	}
+	return total, &m
+}
+
+func (c *channel) GetJoinTime(accountId string) time.Time {
+	if c.Creator.Id == accountId {
+		return c.Creator.CreateAt
+	} else {
+		for _, m := range c.Members {
+			if m.Id == accountId{
+				return m.CreateAt
+			}
+		}
+	}
+	return c.CreatedAt
 }
 
 type channelMembers struct {
@@ -270,6 +394,8 @@ func (m *channelMembers) Join(channelId string, accountId string) error {
 	if err != nil {
 		return err
 	}
+	// create_at 记录加入时间
+	(*a).CreateAt = time.Now()
 	members = append(members, *a)
 	m.m[channelId] = members
 	var buf bytes.Buffer
