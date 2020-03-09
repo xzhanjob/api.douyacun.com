@@ -40,7 +40,7 @@ type channel struct {
 type channelWithMessage struct {
 	channel
 	Messages []ServerMessage `json:"messages"`
-	Total uint64 `json:"total"`
+	Total    uint64          `json:"total"`
 }
 
 type channelResponse struct {
@@ -87,7 +87,7 @@ func (*channel) Create(ctx *gin.Context, v *validate.ChannelCreateValidator) (c 
 			// create_at 记录加入时间
 			(*m)[k].CreateAt = time.Now()
 		}
-		if strings.TrimSpace(v.Title) == "" {
+		if v.Type == consts.TypeChannelPublic && strings.TrimSpace(v.Title) == "" {
 			if v.Type == consts.TypeChannelPrivate {
 				title = (*m)[0].Name
 			} else if v.Type == consts.TypeChannelPublic {
@@ -144,30 +144,25 @@ func (*channel) Create(ctx *gin.Context, v *validate.ChannelCreateValidator) (c 
 // 获取channel
 func (*channel) Private(ctx *gin.Context, v *validate.ChannelCreateValidator) (c *channel, ok bool) {
 	if a, ok := ctx.Get("account"); ok {
+		acct := a.(*account.Account)
 		query := fmt.Sprintf(`
 {
   "query": {
     "bool": {
-      "must": [
-        {
-          "term": {
-            "creator.id": "%s"
-          }
-        },
-        {
-          "term": {
-            "members.id": "%s"
-          }
-        },
-        {
-          "term": {
-            "type": "%s"
-          }
-        }
+      "must": [ { "term": { "type": "%s" } } ],
+      "should": [
+        [
+          { "term": { "creator.id": "%s" } },
+          { "term": { "members.id": "%s" } }
+        ],
+        [
+          { "term": { "creator.id": "%s" } },
+          { "term": { "members.id": "%s" } }
+        ]
       ]
     }
   }
-}`, a.(*account.Account).Id, v.Members[0], v.Type)
+}`, v.Type, acct.Id, v.Members[0], v.Members[0], acct.Id)
 		res, err := db.ES.Search(
 			db.ES.Search.WithIndex(consts.IndicesChannelConst),
 			db.ES.Search.WithBody(strings.NewReader(query)),
@@ -183,13 +178,19 @@ func (*channel) Private(ctx *gin.Context, v *validate.ChannelCreateValidator) (c
 		if res.IsError() {
 			panic(errors.Wrapf(err, "[%d] es response: %s", res.StatusCode, respBody))
 		}
-
 		var r channelResponse
 		if err = json.Unmarshal(respBody, &r); err != nil {
 			panic(errors.Wrapf(err, "channel exists es response: %s", respBody))
 		}
 		if r.Hits.Total.Value > 0 {
 			c = &r.Hits.Hits[0].Source
+			c.Id = r.Hits.Hits[0].Id
+			// 私聊频道需要使用对方名称作为标题
+			if c.Creator.Id == acct.Id {
+				c.Title = c.Creator.Name
+			} else {
+				c.Title = c.Members[0].Name
+			}
 			return c, true
 		} else {
 			return c, false
@@ -284,7 +285,7 @@ func (c *channel) SubscribeWithMsg(ctx *gin.Context, history *map[string]time.Ti
 	for _, v := range *channels {
 		var (
 			start = time.Now()
-			end = time.Now()
+			end   = time.Now()
 		)
 		start = v.GetJoinTime(a.(*account.Account).Id)
 		total, messages := c.Messages(v.Id, start, end)
@@ -297,6 +298,8 @@ func (c *channel) SubscribeWithMsg(ctx *gin.Context, history *map[string]time.Ti
 	return &data, nil
 }
 
+// 倒排获取30条
+// 然后按照时间排序
 type messageSlice []ServerMessage
 
 func (m *messageSlice) Len() int {
@@ -366,7 +369,7 @@ func (c *channel) GetJoinTime(accountId string) time.Time {
 		return c.Creator.CreateAt
 	} else {
 		for _, m := range c.Members {
-			if m.Id == accountId{
+			if m.Id == accountId {
 				return m.CreateAt
 			}
 		}
