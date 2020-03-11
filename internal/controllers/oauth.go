@@ -5,6 +5,7 @@ import (
 	"dyc/internal/module/account"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+	"net/http"
 )
 
 var Oauth *_oauth
@@ -20,7 +21,7 @@ func (*_oauth) Github(ctx *gin.Context) {
 	redirectUri := ctx.DefaultQuery("redirect_uri", "https://www.douyacun.com/")
 	github := account.NewGithub()
 	if err := github.Token(code); err != nil {
-		helper.Fail(ctx, err)
+		ctx.String(http.StatusForbidden, err.Error())
 		return
 	}
 	if err := github.User(); err != nil {

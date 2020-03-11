@@ -2,8 +2,18 @@
 port=:9003
 
 [path]
-log_file=/data/web/api.douyacun.com/storage/logs/douyacun.log
-image_dir=/data/web/images/blog
+log_file=/storage/logs/douyacun.log
+image_dir=/images/blog
 
 [elasticsearch]
 address=http://localhost:9200
+user=
+password=
+
+[github]
+client_id=
+client_secret=
+
+[proxy]
+request=http://47.240.126.251/request
+file=http://47.240.126.251/reques

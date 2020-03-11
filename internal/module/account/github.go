@@ -3,6 +3,7 @@ package account
 import (
 	"bytes"
 	"dyc/internal/config"
+	"dyc/internal/logger"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
@@ -32,18 +33,27 @@ func NewGithub() *_github {
 }
 
 func (g *_github) Token(code string) (err error) {
-	params := &gin.H{
-		"client_id":     config.GetKey("github::client_id").String(),
-		"client_secret": config.GetKey("github::client_secret").String(),
-		"code":          code,
+	body := gin.H{
+		"url":    "https://github.com/login/oauth/access_token",
+		"method": "POST",
+		"header": gin.H{
+			"Content-Type": "application/json",
+			"Accept":       "application/json",
+		},
+		"body": gin.H{
+			"client_id": config.GetKey("github::client_id").String(),
+			"client_secret": config.GetKey("github::client_secret").String(),
+			"code": code,
+		},
+		"skip_verify": false,
+		"timeout":     5 * time.Second,
 	}
-	requestBody, _ := json.Marshal(params)
-	req, _ := http.NewRequest("POST", "https://github.com/login/oauth/access_token", bytes.NewBuffer(requestBody))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	client := &http.Client{
-		Timeout: time.Duration(5 * time.Second),
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(body); err != nil {
+		panic(errors.Wrapf(err, "body json encode error: %s", err.Error()))
 	}
+	req, _ := http.NewRequest("POST", config.GetKey("proxy::request").String(), &buf)
+	client := http.Client{}
 	retries := 3
 	var resp *http.Response
 	for retries > 0 {
@@ -57,29 +67,42 @@ func (g *_github) Token(code string) (err error) {
 		panic(errors.Wrap(err, "request github oauth failed"))
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		d, _ := ioutil.ReadAll(resp.Body)
-		return errors.Errorf("github oauth/access_token [%s] response: %s", resp.StatusCode, d)
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(errors.Wrap(err, "response body read error"))
 	}
-	data, _ := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode > 299 {
+		return errors.Errorf("github oauth/access_token [%d] response: %s", resp.StatusCode, string(data))
+	}
 	if err := json.Unmarshal(data, &g.t); err != nil {
-		panic(errors.Wrapf(err, "github oauth/access_token json decode failed, response: %s", data))
+		panic(errors.Wrapf(err, "github oauth/access_token json decode error, response: %s", data))
 	}
 	if g.t.AccessToken == "" {
+		logger.Errorf("oauth/access_token [%d] response: %s", resp.StatusCode, string(data))
 		return errors.Errorf("github授权登录失败")
 	}
 	return
 }
 
 func (g *_github) User() (err error) {
-	req, _ := http.NewRequest("GET", "https://api.github.com/user", bytes.NewBuffer([]byte{}))
 	authorization := bytes.NewBufferString(g.t.TokenType)
 	authorization.WriteString(" ")
 	authorization.WriteString(g.t.AccessToken)
-	req.Header.Set("Authorization", authorization.String())
-	client := &http.Client{
-		Timeout: time.Duration(5 * time.Second),
+	query := gin.H{
+		"url": "https://api.github.com/user",
+		"method": "GET",
+		"header": gin.H{
+			"Authorization": authorization.String(),
+		},
+		"skip_verify": false,
+		"timeout": 5 * time.Second,
 	}
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		panic(errors.Wrapf(err, "user query json encode error"))
+	}
+	req, _ := http.NewRequest("POST", config.GetKey("proxy::request").String(), &buf)
+	client := &http.Client{}
 	retries := 3
 	var resp *http.Response
 	for retries > 0 {
@@ -90,16 +113,21 @@ func (g *_github) User() (err error) {
 		retries--
 	}
 	if err != nil {
-		//panic(errors.Wrap(err, "request github user failed"))
-		return errors.New("国内请求github经常会有超时的情况，请理解！")
+		panic(errors.Wrap(err, "client request error"))
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		d, _ := ioutil.ReadAll(resp.Body)
-		return errors.Errorf("github oauth/access_token [%s] response: %s", resp.StatusCode, d)
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(errors.Wrapf(err, "read response body error"))
 	}
-	if err = json.NewDecoder(resp.Body).Decode(&g.u); err != nil {
-		panic(errors.Wrap(err, "github user json decode failed"))
+	if resp.StatusCode > 299 {
+		panic(errors.Errorf("[%d] response: %s", resp.StatusCode, string(data)))
+	}
+	if err = json.Unmarshal(data, &g.u); err != nil {
+		panic(errors.Wrapf(err, "github user json decode error, response: %s", string(data)))
+	}
+	if g.u.Id == 0 {
+		panic(errors.Wrapf(err, "github user access error, response: %s", string(data)))
 	}
 	return
 }
