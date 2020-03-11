@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"dyc/internal/derror"
+	"dyc/internal/logger"
 	"dyc/internal/module/account"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
@@ -17,6 +18,7 @@ func LoginCheck() gin.HandlerFunc {
 			panic(derror.Unauthorized{})
 		}
 		cookieStr, err := ctx.Cookie("douyacun")
+		logger.Debugf("cookie: %s", cookieStr)
 		if err != nil || cookieStr == "" {
 			abort()
 			return

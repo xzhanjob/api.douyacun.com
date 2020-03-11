@@ -92,6 +92,7 @@ func recoverWithWrite(out io.Writer) gin.HandlerFunc {
 				} else {
 					switch err.(type) {
 					case derror.Unauthorized:
+						logger.Debugf("cookie 验证失败")
 						c.JSON(http.StatusOK, gin.H{"msg": "unauthorized", "code": http.StatusUnauthorized})
 					default:
 						buf := new(bytes.Buffer) // the returned data
