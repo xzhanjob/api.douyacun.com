@@ -6,7 +6,6 @@ import (
 	"dyc/internal/db"
 	"dyc/internal/helper"
 	"dyc/internal/logger"
-	"dyc/internal/module/account"
 	"encoding/json"
 	"github.com/pkg/errors"
 	"io/ioutil"
@@ -26,14 +25,16 @@ const (
 	TipMsg    msgType = "TIP"
 )
 
-
 type ServerMessage struct {
 	// 消息id
 	Id string `json:"id"`
 	// 时间
 	Date time.Time `json:"date"`
 	// 发送者
-	Sender *account.Account `json:"sender"`
+	Sender struct {
+		Id   string
+		name string
+	} `json:"sender"`
 	// 类型
 	Type msgType `json:"type"`
 	// 内容
@@ -47,26 +48,13 @@ type ClientMessage struct {
 	Content   string `json:"content"`
 }
 
-func NewSystemMsg(msg string, channelId string) *ServerMessage {
-	a := account.NewAccount()
-	a.Name = "系统消息"
-	a.Id = "0"
-	m := &ServerMessage{
-		Content:   msg,
-		Date:      time.Now(),
-		Sender:    a,
-		Type:      SystemMsg,
-		ChannelId: channelId,
-	}
-	m.Id = m.GenId()
-	m.store()
-	return m
-}
-
 func NewDefaultMsg(c *Client, msg string, channelId string) *ServerMessage {
 	m := &ServerMessage{
-		Content:   msg,
-		Sender:    c.account,
+		Content: msg,
+		Sender: struct {
+			Id   string
+			name string
+		}{Id: c.account.Id, name: c.account.Name},
 		Type:      TextMsg,
 		Date:      time.Now(),
 		ChannelId: channelId,
@@ -80,8 +68,11 @@ func NewTipMessage(msg string) *ServerMessage {
 	m := &ServerMessage{
 		Content: msg,
 		Date:    time.Time{},
-		Sender:  account.NewSystemAccount(),
-		Type:    TipMsg,
+		Sender: struct {
+			Id   string
+			name string
+		}{Id: "0", name: "系统消息"},
+		Type: TipMsg,
 	}
 	m.Id = m.GenId()
 	return m

@@ -2,14 +2,19 @@ package account
 
 import (
 	"bytes"
+	"dyc/internal/config"
 	"dyc/internal/consts"
 	"dyc/internal/db"
 	"dyc/internal/helper"
+	"dyc/internal/logger"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path"
 	"strings"
 	"time"
 )
@@ -38,19 +43,16 @@ func NewAccount() *Account {
 	return &Account{}
 }
 
-func NewSystemAccount() *Account {
-	return &Account{Id: "0", Name: "系统消息"}
-}
-
 func (a *Account) Create(ctx *gin.Context, i Accouter) (data *Account, err error) {
 	id := helper.Md516([]byte(i.GetId() + i.Source()))
+	ava := a.avatar(id, i.GetAvatarUrl())
 	var buf bytes.Buffer
 	data = &Account{
 		Name:      i.GetName(),
 		Source:    i.Source(),
 		Id:        i.GetId(),
 		Url:       i.GetUrl(),
-		AvatarUrl: i.GetAvatarUrl(),
+		AvatarUrl: ava,
 		Email:     i.GetEmail(),
 		CreateAt:  time.Now(),
 		Ip:        helper.RealIP(ctx.Request),
@@ -73,6 +75,51 @@ func (a *Account) Create(ctx *gin.Context, i Accouter) (data *Account, err error
 	}
 	data.Id = id
 	return
+}
+
+func (a *Account) avatar(id, url string) string {
+	storageDir := config.GetKey("path::storage_dir").String()
+	ext := path.Ext(url)
+	logger.Debugf("image: %s", config.GetKey("proxy::file").String()+url)
+	req, err := http.NewRequest("GET", config.GetKey("proxy::file").String()+url, strings.NewReader(""))
+	if err != nil {
+		panic(errors.Wrapf(err, "new http request err"))
+	}
+	client := &http.Client{
+		Timeout: time.Duration(5 * time.Second),
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(errors.Wrapf(err, "client error"))
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode > 299 {
+		res, _ := ioutil.ReadAll(resp.Body)
+		panic(errors.Errorf("[%d] response: %s", resp.StatusCode, res))
+	}
+	if ext == "" {
+		switch resp.Header.Get("content-type") {
+		case "image/jpeg":
+			ext = ".jpeg"
+		case "image/png":
+			ext = ".png"
+		case "image/gif":
+			ext = ".gif"
+		default:
+			ext = ".jpg"
+		}
+	}
+	res := path.Join("/images/avatar", id+ext)
+	storageFile := path.Join(storageDir, res)
+	f, err := os.OpenFile(storageFile, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		panic(errors.Wrapf(err, "open avatar file error"))
+	}
+	defer f.Close()
+	if _, err = io.Copy(f, resp.Body); err != nil {
+		panic(errors.Wrapf(err, "copy response to file error"))
+	}
+	return res
 }
 
 func (a *Account) All(name string) (*[]Account, error) {
