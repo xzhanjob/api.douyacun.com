@@ -30,7 +30,6 @@ func Server() {
 	logger.NewLogger(config.GetLogFD())
 	// 数据库
 	db.NewElasticsearch(config.GetKey("elasticsearch::address").Strings(","), config.GetKey("elasticsearch::user").String(), config.GetKey("elasticsearch::password").String())
-	defer shutdown()
 	// 启动gin
 	engine = gin.New()
 	engine.Use(recoverWithWrite(config.GetLogFD()))

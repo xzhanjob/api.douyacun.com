@@ -140,7 +140,6 @@ func (a *Account) All(name string) (*[]Account, error) {
 	if err = json.NewEncoder(&buf).Encode(query); err != nil {
 		panic(errors.Wrap(err, "account list query json encode failed"))
 	}
-
 	type esResponse struct {
 		Hits struct {
 			Total struct {
