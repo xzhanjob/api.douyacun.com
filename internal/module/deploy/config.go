@@ -1,8 +1,8 @@
 package deploy
 
 import (
+	"dyc/internal/config"
 	"dyc/internal/helper"
-	"dyc/internal/initialize"
 	"dyc/internal/logger"
 	"errors"
 	"fmt"
@@ -55,7 +55,7 @@ func LoadConfig(dir string) (*Conf, error) {
 
 //
 func (c *Conf) UploadQrcode(dir string) (err error) {
-	imageDir := initialize.GetKey("path::image_dir").String()
+	imageDir := config.GetKey("path::image_dir").String()
 	// 服务器存储目录
 	storageDir := path.Join(imageDir, c.Key, path.Dir(c.WechatSubscriptionQrcode))
 	if err = os.MkdirAll(storageDir, 0755); err != nil {

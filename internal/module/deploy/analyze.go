@@ -3,10 +3,10 @@ package deploy
 import (
 	"bufio"
 	"bytes"
+	"dyc/internal/config"
 	"dyc/internal/consts"
 	"dyc/internal/db"
 	"dyc/internal/helper"
-	"dyc/internal/initialize"
 	"dyc/internal/logger"
 	"dyc/internal/module/article"
 	"encoding/json"
@@ -98,7 +98,7 @@ func (a *Article) UploadImage(bookDir string, topic string) (err error) {
 	// 图片前缀
 	imagePrefix := path.Join("/images/blog", a.Key, topic)
 	// 图片服务存储目录, 去掉images，方便后面直接拼接images
-	storageDir := path.Dir(path.Dir(initialize.GetKey("path::image_dir").String()))
+	storageDir := path.Dir(path.Dir(config.GetKey("path::image_dir").String()))
 	var errTemplate = func(s string) error {
 		return fmt.Errorf("《%s》: %s", a.Title, s)
 	}

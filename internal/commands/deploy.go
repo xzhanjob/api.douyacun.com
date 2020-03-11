@@ -1,8 +1,8 @@
 package commands
 
 import (
+	"dyc/internal/config"
 	"dyc/internal/db"
-	"dyc/internal/initialize"
 	"dyc/internal/logger"
 	"dyc/internal/module/deploy"
 	"github.com/urfave/cli"
@@ -28,11 +28,11 @@ var Deploy = cli.Command{
 
 func deployAction(c *cli.Context) (err error) {
 	// 加载配置文件
-	initialize.Init(c.String("env"))
+	config.Init(c.String("env"))
 	// 设置运行环境
-	logger.NewLogger(initialize.GetLogFD())
+	logger.NewLogger(config.GetLogFD())
 	// 数据库
-	db.NewElasticsearch(initialize.GetKey("elasticsearch::address").Strings(","), initialize.GetKey("elasticsearch::user").String(), initialize.GetKey("elasticsearch::password").String())
+	db.NewElasticsearch(config.GetKey("elasticsearch::address").Strings(","), config.GetKey("elasticsearch::user").String(), config.GetKey("elasticsearch::password").String())
 	deploy.Run(c.String("dir"))
 	return
 }

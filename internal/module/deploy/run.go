@@ -1,9 +1,9 @@
 package deploy
 
 import (
+	"dyc/internal/config"
 	"dyc/internal/consts"
 	"dyc/internal/helper"
-	"dyc/internal/initialize"
 	"dyc/internal/logger"
 	"path"
 	"strings"
@@ -61,7 +61,7 @@ func Run(dir string) {
 		logger.Error(err)
 	}
 	// 生成webp图片
-	if err := helper.Image.Convert(path.Join(initialize.GetKey("path::image_dir").String(), conf.Key)); err != nil {
+	if err := helper.Image.Convert(path.Join(config.GetKey("path::image_dir").String(), conf.Key)); err != nil {
 		logger.Error(err)
 	}
 }

@@ -3,6 +3,7 @@ package initialize
 import (
 	"bytes"
 	"context"
+	"dyc/internal/config"
 	"dyc/internal/controllers"
 	"dyc/internal/db"
 	"dyc/internal/derror"
@@ -26,17 +27,17 @@ func Server() {
 		err error
 	)
 	// 日志
-	logger.NewLogger(GetLogFD())
+	logger.NewLogger(config.GetLogFD())
 	// 数据库
-	db.NewElasticsearch(GetKey("elasticsearch::address").Strings(","), GetKey("elasticsearch::user").String(), GetKey("elasticsearch::password").String())
+	db.NewElasticsearch(config.GetKey("elasticsearch::address").Strings(","), config.GetKey("elasticsearch::user").String(), config.GetKey("elasticsearch::password").String())
 	defer shutdown()
 	// 启动gin
 	engine = gin.New()
-	engine.Use(recoverWithWrite(GetLogFD()))
+	engine.Use(recoverWithWrite(config.GetLogFD()))
 
 	// 路由
 	controllers.NewRouter(engine)
-	port := GetKey("server::port").String()
+	port := config.GetKey("server::port").String()
 	server := http.Server{
 		Addr:     port,
 		Handler:  engine,

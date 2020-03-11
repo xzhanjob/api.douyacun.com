@@ -2,6 +2,7 @@ package account
 
 import (
 	"bytes"
+	"dyc/internal/config"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
@@ -32,8 +33,8 @@ func NewGithub() *_github {
 
 func (g *_github) Token(code string) (err error) {
 	params := &gin.H{
-		"client_id":     "25fc4f51f48cb5d52edf",
-		"client_secret": "e95e1cca0535a3bf9b8a26ed3920b5fbecca873c",
+		"client_id":     config.GetKey("github::client_id").String(),
+		"client_secret": config.GetKey("github::client_secret").String(),
 		"code":          code,
 	}
 	requestBody, _ := json.Marshal(params)
