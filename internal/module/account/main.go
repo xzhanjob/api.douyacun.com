@@ -110,7 +110,7 @@ func (a *Account) avatar(id, url string) string {
 		}
 	}
 	res := path.Join("/images/avatar", id+ext)
-	storageFile := path.Join(storageDir, res)
+	storageFile := path.Join(path.Dir(storageDir), res)
 	f, err := os.OpenFile(storageFile, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		panic(errors.Wrapf(err, "open avatar file error"))
