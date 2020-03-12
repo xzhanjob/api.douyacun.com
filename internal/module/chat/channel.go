@@ -70,6 +70,7 @@ type serverMsgResponse struct {
 // 创建一个新的channel
 func (*channel) Create(ctx *gin.Context, v *validate.ChannelCreateValidator) (c *channel, err error) {
 	if a, ok := ctx.Get("account"); ok {
+		acct := a.(*account.Account)
 		type esResponse struct {
 			Id string `json:"_id"`
 		}
@@ -88,22 +89,18 @@ func (*channel) Create(ctx *gin.Context, v *validate.ChannelCreateValidator) (c 
 			(*m)[k].CreateAt = time.Now()
 		}
 		if v.Type == consts.TypeChannelPublic && strings.TrimSpace(v.Title) == "" {
-			if v.Type == consts.TypeChannelPrivate {
-				title = (*m)[0].Name
-			} else if v.Type == consts.TypeChannelPublic {
-				name := make([]string, 0)
-				for _, v := range *m {
-					name = append(name, v.Name)
-				}
-				if len(name) > 20 {
-					name = name[:20]
-				}
-				title = strings.Join(name, "、")
+			name := make([]string, 0)
+			for _, v := range *m {
+				name = append(name, v.Name)
 			}
+			if len(name) > 20 {
+				name = name[:20]
+			}
+			title = strings.Join(name, "、")
 		}
 		query := map[string]interface{}{
 			"title":      title,
-			"creator":    a,
+			"creator":    acct,
 			"created_at": time.Now(),
 			"type":       v.Type,
 			"members":    *m,
@@ -135,6 +132,7 @@ func (*channel) Create(ctx *gin.Context, v *validate.ChannelCreateValidator) (c 
 			Creator:   a.(*account.Account),
 			CreatedAt: time.Now(),
 		}
+		c.Title = c.getTitle(acct.Id)
 	} else {
 		panic(derror.Unauthorized{})
 	}
@@ -149,7 +147,6 @@ func (*channel) Private(ctx *gin.Context, v *validate.ChannelCreateValidator) (c
 {
   "query": {
     "bool": {
-      "must": [ { "term": { "type": "%s" } } ],
       "should": [
         [
           { "term": { "creator.id": "%s" } },
@@ -159,10 +156,12 @@ func (*channel) Private(ctx *gin.Context, v *validate.ChannelCreateValidator) (c
           { "term": { "creator.id": "%s" } },
           { "term": { "members.id": "%s" } }
         ]
-      ]
+      ],
+      "filter": { "term": { "type": "%s" } }
     }
   }
-}`, v.Type, acct.Id, v.Members[0], v.Members[0], acct.Id)
+}`, acct.Id, v.Members[0], v.Members[0], acct.Id, v.Type)
+		logger.Debug("query: %s", query)
 		res, err := db.ES.Search(
 			db.ES.Search.WithIndex(consts.IndicesChannelConst),
 			db.ES.Search.WithBody(strings.NewReader(query)),
@@ -234,6 +233,7 @@ func (*channel) Get(id string) (*channel, error) {
 // 订阅channel
 func (*channel) Subscribe(ctx *gin.Context) (*[]channel, error) {
 	a, _ := ctx.Get("account")
+	acct := a.(*account.Account)
 	query := fmt.Sprintf(`
 {
   "query": {
@@ -246,7 +246,7 @@ func (*channel) Subscribe(ctx *gin.Context) (*[]channel, error) {
     }
   }
 }
-`, a.(*account.Account).Id, a.(*account.Account).Id)
+`, acct.Id, acct.Id)
 	res, err := db.ES.Search(
 		db.ES.Search.WithIndex(consts.IndicesChannelConst),
 		db.ES.Search.WithBody(strings.NewReader(query)),
@@ -269,6 +269,7 @@ func (*channel) Subscribe(ctx *gin.Context) (*[]channel, error) {
 	var c []channel
 	for _, v := range r.Hits.Hits {
 		v.Source.Id = v.Id
+		v.Source.Title = v.Source.getTitle(acct.Id)
 		c = append(c, v.Source)
 	}
 	return &c, nil
@@ -296,6 +297,18 @@ func (c *channel) SubscribeWithMsg(ctx *gin.Context, history *map[string]time.Ti
 		data = append(data, t)
 	}
 	return &data, nil
+}
+
+func (c *channel) getTitle(accountId string) string {
+	if c.Type == consts.TypeChannelPrivate {
+		if c.Creator.Id == accountId {
+			return c.Members[0].Name
+		} else {
+			return c.Creator.Name
+		}
+	} else {
+		return c.Title
+	}
 }
 
 // 倒排获取30条

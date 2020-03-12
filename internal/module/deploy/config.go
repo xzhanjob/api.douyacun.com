@@ -68,6 +68,6 @@ func (c *Conf) UploadQrcode(dir string) (err error) {
 	if err != nil {
 		return err
 	}
-	c.WechatSubscriptionQrcode = fmt.Sprintf("/%s/%s/%s", "images", c.Key, strings.Trim(c.WechatSubscriptionQrcode, "/"))
+	c.WechatSubscriptionQrcode = fmt.Sprintf("/%s/%s/%s", "images/blog", c.Key, strings.Trim(c.WechatSubscriptionQrcode, "/"))
 	return nil
 }

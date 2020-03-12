@@ -25,16 +25,17 @@ const (
 	TipMsg    msgType = "TIP"
 )
 
+type shortAcct struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
 type ServerMessage struct {
 	// 消息id
 	Id string `json:"id"`
 	// 时间
 	Date time.Time `json:"date"`
 	// 发送者
-	Sender struct {
-		Id   string
-		name string
-	} `json:"sender"`
+	Sender shortAcct `json:"sender"`
 	// 类型
 	Type msgType `json:"type"`
 	// 内容
@@ -51,10 +52,10 @@ type ClientMessage struct {
 func NewDefaultMsg(c *Client, msg string, channelId string) *ServerMessage {
 	m := &ServerMessage{
 		Content: msg,
-		Sender: struct {
-			Id   string
-			name string
-		}{Id: c.account.Id, name: c.account.Name},
+		Sender: shortAcct{
+			Id:   c.account.Id,
+			Name: c.account.Name,
+		},
 		Type:      TextMsg,
 		Date:      time.Now(),
 		ChannelId: channelId,
@@ -68,11 +69,8 @@ func NewTipMessage(msg string) *ServerMessage {
 	m := &ServerMessage{
 		Content: msg,
 		Date:    time.Time{},
-		Sender: struct {
-			Id   string
-			name string
-		}{Id: "0", name: "系统消息"},
-		Type: TipMsg,
+		Sender:  shortAcct{Id: "0", Name: "系统消息"},
+		Type:    TipMsg,
 	}
 	m.Id = m.GenId()
 	return m
