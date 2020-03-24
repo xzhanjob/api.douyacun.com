@@ -9,6 +9,7 @@ var WS _ws
 
 type _ws struct{}
 
-func (*_ws) Join(ctx *gin.Context, hub *chat.Hub) {
-	chat.ServeWs(ctx, hub)
+
+func (*_ws) Join(ctx *gin.Context) {
+	chat.ServeWs(ctx)
 }
