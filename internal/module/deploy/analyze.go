@@ -129,6 +129,10 @@ func (a *Article) UploadImage(bookDir string, topic string) (err error) {
 			return errTemplate(fmt.Sprintf("regex compile faile: %s", err))
 		}
 		for _, v := range re.FindAllStringSubmatch(a.Content, -1) {
+			// 避过外链
+			if strings.Contains(v[2], "http") {
+				continue
+			}
 			filename := strings.Trim(v[2]+v[3], "/")
 			src := path.Join(bookDir, topic, filename)
 			// 替换文件image路径
