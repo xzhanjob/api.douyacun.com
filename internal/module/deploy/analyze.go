@@ -130,7 +130,7 @@ func (a *Article) UploadImage(bookDir string, topic string) (err error) {
 		}
 		for _, v := range re.FindAllStringSubmatch(a.Content, -1) {
 			// 避过外链
-			if strings.Contains(v[2], "http") {
+			if strings.Index(v[2], "http") == 0 {
 				continue
 			}
 			filename := strings.Trim(v[2]+v[3], "/")
