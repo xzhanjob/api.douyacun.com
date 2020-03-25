@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"dyc/internal/consts"
 	"net"
 	"reflect"
 	"syscall"
@@ -44,46 +45,55 @@ func (e *epoll) run() {
 			// 单点登录
 			if fd, ok := e.accounts[client.account.Id]; ok {
 				if other, ok := e.connections[fd]; ok {
-					other.Conn.Close()
+					other.conn.Close()
 				}
 			}
-			fd := websocketFd(client.Conn)
+			fd := websocketFd(client.conn)
 			e.accounts[client.account.Id] = fd
 			e.connections[fd] = &client
 		case client := <-e.unregister:
-			// 单点登录
 			if fd, ok := e.accounts[client.account.Id]; ok {
 				if other, ok := e.connections[fd]; ok {
 					delete(e.accounts, client.account.Id)
 					delete(e.connections, fd)
-					other.Conn.Close()
+					other.conn.Close()
+				}
+			}
+		case msg := <-e.broadcast:
+			// 广播
+			if msg.GetChannelID() == consts.GlobalChannelId {
+				for id, fd := range e.accounts {
+					if client, ok := e.connections[fd]; ok {
+						select {
+						case client.send <- msg.Bytes():
+						default:
+							close(client.send)
+							delete(e.accounts, id)
+							delete(e.connections, fd)
+						}
+					}
+				}
+			} else {
+				// channel聊天
+				for _, id := range msg.Members() {
+					if fd, ok := e.accounts[id]; ok {
+						if client, ok := e.connections[fd]; ok {
+							select {
+							case client.send <- msg.Bytes():
+							default:
+								close(client.send)
+								delete(e.accounts, id)
+								delete(e.connections, fd)
+							}
+						}
+					}
 				}
 			}
 		}
 	}
 }
 
-func (e *epoll) Add(c *Client) error {
-	fd := websocketFd(c.Conn)
-	if err := syscall.EpollCtl(e.Fd, syscall.EPOLL_CTL_ADD, fd, &syscall.EpollEvent{Events: syscall.EPOLLIN | syscall.EPOLLOUT, Fd: int32(fd)}); err != nil {
-		return err
-	}
-	e.connections[fd] = c
-	return nil
-}
-
-func (e *epoll) Remove(c *Client) error {
-	fd := websocketFd(c.Conn)
-	if err := syscall.EpollCtl(e.Fd, syscall.EPOLL_CTL_DEL, fd, nil); err != nil {
-		return err
-	}
-	e.Lock.Lock()
-	defer e.Lock.Unlock()
-	delete(e.connections, fd)
-	return nil
-}
-
-func (e *epoll) Count(c Client) int {
+func (e *epoll) Count() int {
 	return len(e.connections)
 }
 
