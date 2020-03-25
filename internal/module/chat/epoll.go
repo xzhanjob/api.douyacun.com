@@ -2,6 +2,7 @@ package chat
 
 import (
 	"dyc/internal/consts"
+	"github.com/gobwas/ws/wsutil"
 	"net"
 	"reflect"
 	"syscall"
@@ -41,11 +42,12 @@ func MakeEpoll() (*epoll, error) {
 func (e *epoll) run() {
 	for {
 		select {
-		case client := <- e.register:
+		case client := <-e.register:
 			// 单点登录
 			if fd, ok := e.accounts[client.account.Id]; ok {
 				if other, ok := e.connections[fd]; ok {
 					other.conn.Close()
+					wsutil.WriteClientText(client.conn, NewTipMessage("该账号的其他链接已经关闭").Bytes())
 				}
 			}
 			fd := websocketFd(client.conn)

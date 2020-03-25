@@ -29,7 +29,6 @@ func init() {
 type Client struct {
 	conn    net.Conn
 	account *account.Account
-	send    chan []byte
 }
 
 // serveWs handles websocket requests from the peer.
@@ -61,7 +60,7 @@ func start() {
 	for {
 		clients, err := hub.Wait()
 		if err != nil {
-			logger.Debugf("")
+			logger.Debugf("epoll wait %v", err)
 			continue
 		}
 		for _, client := range clients {
