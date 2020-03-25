@@ -2,14 +2,11 @@ package controllers
 
 import (
 	"dyc/internal/middleware"
-	"dyc/internal/module/chat"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 func NewRouter(router *gin.Engine) {
-	hub := chat.NewHub()
-	go hub.Run()
 	api := router.Group("/api")
 	{
 		// 文章
@@ -28,9 +25,7 @@ func NewRouter(router *gin.Engine) {
 		// websocket
 		auth := api.Group("/", middleware.LoginCheck())
 		{
-			auth.GET("/ws/join", func(context *gin.Context) {
-				WS.Join(context, hub)
-			})
+			auth.GET("/ws/join", WS.Join)
 			auth.POST("/ws/channel", Channel.Create)
 			auth.GET("/ws/channel/subscribe", Channel.subscribe)
 			auth.GET("/ws/channel/messages", Channel.Messages)

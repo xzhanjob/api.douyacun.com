@@ -5,11 +5,6 @@ import (
 	"dyc/internal/logger"
 )
 
-type Responser interface {
-	Members() []string
-	Bytes() []byte
-	GetChannelID() string
-}
 
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.

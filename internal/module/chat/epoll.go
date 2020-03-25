@@ -3,14 +3,23 @@ package chat
 import (
 	"net"
 	"reflect"
-	"sync"
 	"syscall"
 )
 
+type Responser interface {
+	Members() []string
+	Bytes() []byte
+	GetChannelID() string
+}
+
 type epoll struct {
-	Fd          int
-	Connections map[int]*Client
-	Lock        *sync.RWMutex
+	Fd int
+	// 方便通过账户id映射到文件描述符，通过文件描述符取到对应connect
+	accounts    map[string]int
+	connections map[int]*Client
+	register    chan Client
+	unregister  chan Client
+	broadcast   chan Responser
 }
 
 func MakeEpoll() (*epoll, error) {
@@ -20,9 +29,38 @@ func MakeEpoll() (*epoll, error) {
 	}
 	return &epoll{
 		Fd:          fd,
-		Connections: make(map[int]*Client, 0),
-		Lock:        nil,
+		accounts:    make(map[string]int),
+		connections: make(map[int]*Client, 0),
+		register:    make(chan Client),
+		unregister:  make(chan Client),
+		broadcast:   make(chan Responser),
 	}, nil
+}
+
+func (e *epoll) run() {
+	for {
+		select {
+		case client := <- e.register:
+			// 单点登录
+			if fd, ok := e.accounts[client.account.Id]; ok {
+				if other, ok := e.connections[fd]; ok {
+					other.Conn.Close()
+				}
+			}
+			fd := websocketFd(client.Conn)
+			e.accounts[client.account.Id] = fd
+			e.connections[fd] = &client
+		case client := <-e.unregister:
+			// 单点登录
+			if fd, ok := e.accounts[client.account.Id]; ok {
+				if other, ok := e.connections[fd]; ok {
+					delete(e.accounts, client.account.Id)
+					delete(e.connections, fd)
+					other.Conn.Close()
+				}
+			}
+		}
+	}
 }
 
 func (e *epoll) Add(c *Client) error {
@@ -30,9 +68,7 @@ func (e *epoll) Add(c *Client) error {
 	if err := syscall.EpollCtl(e.Fd, syscall.EPOLL_CTL_ADD, fd, &syscall.EpollEvent{Events: syscall.EPOLLIN | syscall.EPOLLOUT, Fd: int32(fd)}); err != nil {
 		return err
 	}
-	e.Lock.Lock()
-	defer e.Lock.Unlock()
-	e.Connections[fd] = c
+	e.connections[fd] = c
 	return nil
 }
 
@@ -43,12 +79,12 @@ func (e *epoll) Remove(c *Client) error {
 	}
 	e.Lock.Lock()
 	defer e.Lock.Unlock()
-	delete(e.Connections, fd)
+	delete(e.connections, fd)
 	return nil
 }
 
 func (e *epoll) Count(c Client) int {
-	return len(e.Connections)
+	return len(e.connections)
 }
 
 func (e *epoll) Wait() ([]*Client, error) {
@@ -59,7 +95,7 @@ func (e *epoll) Wait() ([]*Client, error) {
 	}
 	connections := make([]*Client, n)
 	for i := 0; i < n; i++ {
-		conn := e.Connections[int(events[i].Fd)]
+		conn := e.connections[int(events[i].Fd)]
 		connections = append(connections, conn)
 	}
 	return connections, nil
