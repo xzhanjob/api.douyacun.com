@@ -18,6 +18,7 @@ func NewPool(size, queue int) *pool {
 		work: make(chan func(), queue),
 	}
 }
+
 func (p *pool) Schedule(task func()) error {
 	return p.schedule(task, nil)
 }

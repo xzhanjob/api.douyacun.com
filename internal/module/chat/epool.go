@@ -22,6 +22,7 @@ type epoll struct {
 	register    chan Client
 	unregister  chan Client
 	broadcast   chan Responser
+	pool        *pool
 }
 
 func MakeEpoll() (*epoll, error) {
@@ -36,6 +37,7 @@ func MakeEpoll() (*epoll, error) {
 		register:    make(chan Client),
 		unregister:  make(chan Client),
 		broadcast:   make(chan Responser),
+		pool:        NewPool(128, 128),
 	}, nil
 }
 
@@ -66,10 +68,10 @@ func (e *epoll) run() {
 			if msg.GetChannelID() == consts.GlobalChannelId {
 				for id, fd := range e.accounts {
 					if client, ok := e.connections[fd]; ok {
-						select {
-						case client.send <- msg.Bytes():
-						default:
-							close(client.send)
+						if err := e.pool.Schedule(func() {
+							client.conn.Write(msg.Bytes())
+						}); err != nil {
+							client.conn.Close()
 							delete(e.accounts, id)
 							delete(e.connections, fd)
 						}
@@ -80,10 +82,10 @@ func (e *epoll) run() {
 				for _, id := range msg.Members() {
 					if fd, ok := e.accounts[id]; ok {
 						if client, ok := e.connections[fd]; ok {
-							select {
-							case client.send <- msg.Bytes():
-							default:
-								close(client.send)
+							if err := e.pool.Schedule(func() {
+								client.conn.Write(msg.Bytes())
+							}); err != nil {
+								client.conn.Close()
 								delete(e.accounts, id)
 								delete(e.connections, fd)
 							}

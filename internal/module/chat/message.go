@@ -29,6 +29,7 @@ type shortAcct struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
 }
+
 type ServerMessage struct {
 	// 消息id
 	Id string `json:"id"`
