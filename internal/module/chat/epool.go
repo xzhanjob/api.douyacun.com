@@ -2,6 +2,7 @@ package chat
 
 import (
 	"dyc/internal/consts"
+	"dyc/internal/logger"
 	"github.com/gobwas/ws/wsutil"
 	"net"
 	"reflect"
@@ -45,6 +46,7 @@ func (e *epoll) run() {
 	for {
 		select {
 		case client := <-e.register:
+			logger.Debugf("new client register: %v", client)
 			// 单点登录
 			if fd, ok := e.accounts[client.account.Id]; ok {
 				if other, ok := e.connections[fd]; ok {
@@ -64,6 +66,7 @@ func (e *epoll) run() {
 				}
 			}
 		case msg := <-e.broadcast:
+			logger.Debugf("new message broadcast %s", msg.Bytes())
 			// 广播
 			if msg.GetChannelID() == consts.GlobalChannelId {
 				for id, fd := range e.accounts {
