@@ -55,11 +55,19 @@ func (e *epoll) run() {
 				}
 			}
 			fd := websocketFd(client.conn)
+			if err := syscall.EpollCtl(e.Fd, syscall.EPOLL_CTL_ADD, fd, &syscall.EpollEvent{Events: syscall.EPOLLIN | syscall.EPOLLOUT, Fd: int32(fd)}); err != nil {
+				logger.Errorf("epoll ctl add error: %v", err)
+				continue
+			}
 			e.accounts[client.account.Id] = fd
 			e.connections[fd] = &client
 		case client := <-e.unregister:
 			if fd, ok := e.accounts[client.account.Id]; ok {
 				if other, ok := e.connections[fd]; ok {
+					if err := syscall.EpollCtl(e.Fd, syscall.EPOLL_CTL_DEL, fd, nil); err != nil {
+						logger.Errorf("epoll ctl del error: %v", err)
+						continue
+					}
 					delete(e.accounts, client.account.Id)
 					delete(e.connections, fd)
 					other.conn.Close()

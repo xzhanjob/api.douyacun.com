@@ -8,11 +8,12 @@ import (
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/pkg/errors"
+	"log"
 	"net"
 )
 
 var (
-	hub     *epoll
+	hub *epoll
 )
 
 func init() {
@@ -63,19 +64,31 @@ func start() {
 			logger.Debugf("epoll wait %v", err)
 			continue
 		}
+		msg := make([]wsutil.Message, 0, 4)
 		for _, client := range clients {
-			message, op, err := wsutil.ReadClientData(client.conn)
+			msg, err = wsutil.ReadClientMessage(client.conn, msg[:0])
 			if err != nil {
-				logger.Errorf("read client data error: %v", err)
-				continue
+				log.Printf("read message error: %v", err)
+				return
 			}
-			if op == ws.OpText { // 文本消息
-				msg := ClientMessage{}
-				if err := json.Unmarshal(message, msg); err != nil {
+			for _, m := range msg {
+				// 处理ping/pong/close
+				if m.OpCode.IsControl() {
+					err := wsutil.HandleClientControlMessage(client.conn, m)
+					if err != nil {
+						if _, ok := err.(wsutil.ClosedError); ok {
+							hub.unregister <- *client
+						}
+						continue
+					}
+					continue
+				}
+				cmsg := ClientMessage{}
+				if err := json.Unmarshal(m.Payload, cmsg); err != nil {
 					logger.Errorf("json unmarshal error: %v", err)
 					continue
 				}
-				hub.broadcast <- NewDefaultMsg(client, msg.Content, msg.ChannelId)
+				hub.broadcast <- NewDefaultMsg(client, cmsg.Content, cmsg.ChannelId)
 			}
 		}
 	}
