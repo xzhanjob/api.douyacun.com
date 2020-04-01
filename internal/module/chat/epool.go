@@ -120,8 +120,9 @@ func (e *epoll) Wait() ([]*Client, error) {
 	}
 	connections := make([]*Client, n)
 	for i := 0; i < n; i++ {
-		conn := e.connections[int(events[i].Fd)]
-		connections = append(connections, conn)
+		if conn, ok  := e.connections[int(events[i].Fd)]; ok {
+			connections = append(connections, conn)
+		}
 	}
 	return connections, nil
 }

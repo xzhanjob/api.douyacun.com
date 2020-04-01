@@ -64,32 +64,32 @@ func start() {
 			logger.Debugf("epoll wait %v", err)
 			continue
 		}
-		msg := make([]wsutil.Message, 0, 4)
 		for _, client := range clients {
-			msg, err = wsutil.ReadClientMessage(client.conn, msg[:0])
+			bt, opCode, err := wsutil.ReadClientData(client.conn)
 			if err != nil {
 				log.Printf("read message error: %v", err)
-				return
+				continue
 			}
-			for _, m := range msg {
-				// 处理ping/pong/close
-				if m.OpCode.IsControl() {
-					err := wsutil.HandleClientControlMessage(client.conn, m)
-					if err != nil {
-						if _, ok := err.(wsutil.ClosedError); ok {
-							hub.unregister <- *client
-						}
-						continue
+			// 处理ping/pong/close
+			if opCode.IsControl() {
+				err := wsutil.HandleClientControlMessage(client.conn, wsutil.Message{
+					OpCode:  opCode,
+					Payload: bt,
+				})
+				if err != nil {
+					if _, ok := err.(wsutil.ClosedError); ok {
+						hub.unregister <- *client
 					}
 					continue
 				}
-				cmsg := ClientMessage{}
-				if err := json.Unmarshal(m.Payload, cmsg); err != nil {
-					logger.Errorf("json unmarshal error: %v", err)
-					continue
-				}
-				hub.broadcast <- NewDefaultMsg(client, cmsg.Content, cmsg.ChannelId)
+				continue
 			}
+			cmsg := ClientMessage{}
+			if err := json.Unmarshal(bt, cmsg); err != nil {
+				logger.Errorf("json unmarshal error: %v", err)
+				continue
+			}
+			hub.broadcast <- NewDefaultMsg(client, cmsg.Content, cmsg.ChannelId)
 		}
 	}
 }
