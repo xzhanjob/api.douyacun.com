@@ -7,6 +7,7 @@ import (
 	"net"
 	"reflect"
 	"syscall"
+	"time"
 )
 
 type Responser interface {
@@ -19,7 +20,7 @@ type epoll struct {
 	Fd int
 	// 方便通过账户id映射到文件描述符，通过文件描述符取到对应connect
 	accounts    map[string]int
-	connections map[int]*Client
+	connections map[int]Client
 	register    chan Client
 	unregister  chan Client
 	broadcast   chan Responser
@@ -34,7 +35,7 @@ func MakeEpoll() (*epoll, error) {
 	return &epoll{
 		Fd:          fd,
 		accounts:    make(map[string]int),
-		connections: make(map[int]*Client, 0),
+		connections: make(map[int]Client, 0),
 		register:    make(chan Client),
 		unregister:  make(chan Client),
 		broadcast:   make(chan Responser),
@@ -60,7 +61,7 @@ func (e *epoll) run() {
 				continue
 			}
 			e.accounts[client.account.Id] = fd
-			e.connections[fd] = &client
+			e.connections[fd] = client
 		case client := <-e.unregister:
 			if fd, ok := e.accounts[client.account.Id]; ok {
 				if other, ok := e.connections[fd]; ok {
@@ -79,9 +80,9 @@ func (e *epoll) run() {
 			if msg.GetChannelID() == consts.GlobalChannelId {
 				for id, fd := range e.accounts {
 					if client, ok := e.connections[fd]; ok {
-						if err := e.pool.Schedule(func() {
+						if err := e.pool.ScheduleTimeout(func() {
 							client.conn.Write(msg.Bytes())
-						}); err != nil {
+						}, 1*time.Second); err != nil {
 							client.conn.Close()
 							delete(e.accounts, id)
 							delete(e.connections, fd)
@@ -93,9 +94,9 @@ func (e *epoll) run() {
 				for _, id := range msg.Members() {
 					if fd, ok := e.accounts[id]; ok {
 						if client, ok := e.connections[fd]; ok {
-							if err := e.pool.Schedule(func() {
+							if err := e.pool.ScheduleTimeout(func() {
 								client.conn.Write(msg.Bytes())
-							}); err != nil {
+							}, 1*time.Second); err != nil {
 								client.conn.Close()
 								delete(e.accounts, id)
 								delete(e.connections, fd)
@@ -112,15 +113,15 @@ func (e *epoll) Count() int {
 	return len(e.connections)
 }
 
-func (e *epoll) Wait() ([]*Client, error) {
+func (e *epoll) Wait() ([]Client, error) {
 	events := make([]syscall.EpollEvent, 100)
 	n, err := syscall.EpollWait(e.Fd, events, 100)
 	if err != nil {
 		return nil, err
 	}
-	connections := make([]*Client, n)
+	var connections []Client
 	for i := 0; i < n; i++ {
-		if conn, ok  := e.connections[int(events[i].Fd)]; ok {
+		if conn, ok := e.connections[int(events[i].Fd)]; ok {
 			connections = append(connections, conn)
 		}
 	}

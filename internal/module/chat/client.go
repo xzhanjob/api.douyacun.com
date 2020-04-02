@@ -68,6 +68,7 @@ func start() {
 			bt, opCode, err := wsutil.ReadClientData(client.conn)
 			if err != nil {
 				log.Printf("read message error: %v", err)
+				hub.unregister <- client
 				continue
 			}
 			// 处理ping/pong/close
@@ -78,18 +79,19 @@ func start() {
 				})
 				if err != nil {
 					if _, ok := err.(wsutil.ClosedError); ok {
-						hub.unregister <- *client
+						hub.unregister <- client
 					}
 					continue
 				}
 				continue
 			}
+			logger.Debugf("msg: %s", bt)
 			cmsg := ClientMessage{}
-			if err := json.Unmarshal(bt, cmsg); err != nil {
+			if err := json.Unmarshal(bt, &cmsg); err != nil {
 				logger.Errorf("json unmarshal error: %v", err)
 				continue
 			}
-			hub.broadcast <- NewDefaultMsg(client, cmsg.Content, cmsg.ChannelId)
+			hub.broadcast <- NewDefaultMsg(&client, cmsg.Content, cmsg.ChannelId)
 		}
 	}
 }

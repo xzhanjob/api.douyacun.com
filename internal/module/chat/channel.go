@@ -343,7 +343,6 @@ func (*channel) Messages(channelId string, start time.Time, end time.Time) (uint
   "sort": { "date": { "order": "desc" } },
   "size": 20
 }`, channelId, start.Format(format), end.Format(format))
-	logger.Debugf("%s", query)
 	res, err := db.ES.Search(
 		db.ES.Search.WithIndex(consts.IndicesMessageConst),
 		db.ES.Search.WithBody(strings.NewReader(query)),
