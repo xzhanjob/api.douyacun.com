@@ -3,6 +3,7 @@ package chat
 import (
 	"dyc/internal/logger"
 	"dyc/internal/module/account"
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
@@ -70,20 +71,15 @@ func start() {
 				//hub.unregister <- client
 				continue
 			}
-			err = wsutil.WriteServerMessage(client.conn, opCode, bt)
-			if err != nil {
-				log.Printf("write message error: %v", err)
-				return
+			if opCode == ws.OpText {
+				logger.Debugf("msg: %s", bt)
+				cmsg := ClientMessage{}
+				if err := json.Unmarshal(bt, &cmsg); err != nil {
+					logger.Errorf("json unmarshal error: %v", err)
+					continue
+				}
+				hub.broadcast <- NewDefaultMsg(&client, cmsg.Content, cmsg.ChannelId)
 			}
-			//if opCode == ws.OpText {
-			//	logger.Debugf("msg: %s", bt)
-			//	cmsg := ClientMessage{}
-			//	if err := json.Unmarshal(bt, &cmsg); err != nil {
-			//		logger.Errorf("json unmarshal error: %v", err)
-			//		continue
-			//	}
-			//	hub.broadcast <- NewDefaultMsg(&client, cmsg.Content, cmsg.ChannelId)
-			//}
 		}
 	}
 }
