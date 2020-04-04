@@ -3,6 +3,7 @@ package chat
 import (
 	"dyc/internal/consts"
 	"dyc/internal/logger"
+	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"net"
 	"reflect"
@@ -81,7 +82,7 @@ func (e *epoll) run() {
 				for id, fd := range e.accounts {
 					if client, ok := e.connections[fd]; ok {
 						if err := e.pool.ScheduleTimeout(func() {
-							client.conn.Write(msg.Bytes())
+							wsutil.WriteServerMessage(client.conn, ws.OpText, msg.Bytes())
 						}, 1*time.Second); err != nil {
 							client.conn.Close()
 							delete(e.accounts, id)
@@ -95,7 +96,7 @@ func (e *epoll) run() {
 					if fd, ok := e.accounts[id]; ok {
 						if client, ok := e.connections[fd]; ok {
 							if err := e.pool.ScheduleTimeout(func() {
-								client.conn.Write(msg.Bytes())
+								wsutil.WriteServerMessage(client.conn, ws.OpText, msg.Bytes())
 							}, 1*time.Second); err != nil {
 								client.conn.Close()
 								delete(e.accounts, id)

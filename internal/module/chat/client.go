@@ -3,7 +3,6 @@ package chat
 import (
 	"dyc/internal/logger"
 	"dyc/internal/module/account"
-	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
@@ -68,30 +67,23 @@ func start() {
 			bt, opCode, err := wsutil.ReadClientData(client.conn)
 			if err != nil {
 				log.Printf("read message error: %v", err)
-				hub.unregister <- client
+				//hub.unregister <- client
 				continue
 			}
-			// 处理ping/pong/close
-			if opCode.IsControl() {
-				err := wsutil.HandleClientControlMessage(client.conn, wsutil.Message{
-					OpCode:  opCode,
-					Payload: bt,
-				})
-				if err != nil {
-					if _, ok := err.(wsutil.ClosedError); ok {
-						hub.unregister <- client
-					}
-					continue
-				}
-				continue
+			err = wsutil.WriteServerMessage(client.conn, opCode, bt)
+			if err != nil {
+				log.Printf("write message error: %v", err)
+				return
 			}
-			logger.Debugf("msg: %s", bt)
-			cmsg := ClientMessage{}
-			if err := json.Unmarshal(bt, &cmsg); err != nil {
-				logger.Errorf("json unmarshal error: %v", err)
-				continue
-			}
-			hub.broadcast <- NewDefaultMsg(&client, cmsg.Content, cmsg.ChannelId)
+			//if opCode == ws.OpText {
+			//	logger.Debugf("msg: %s", bt)
+			//	cmsg := ClientMessage{}
+			//	if err := json.Unmarshal(bt, &cmsg); err != nil {
+			//		logger.Errorf("json unmarshal error: %v", err)
+			//		continue
+			//	}
+			//	hub.broadcast <- NewDefaultMsg(&client, cmsg.Content, cmsg.ChannelId)
+			//}
 		}
 	}
 }
