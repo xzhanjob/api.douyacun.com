@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -133,6 +134,9 @@ func (g *_github) User() (err error) {
 }
 
 func (g *_github) GetName() string {
+	if strings.Trim(g.u.Name, " ") == ""{
+		
+	}
 	return g.u.Name
 }
 
