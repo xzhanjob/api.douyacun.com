@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -135,7 +136,14 @@ func (g *_github) User() (err error) {
 
 func (g *_github) GetName() string {
 	if strings.Trim(g.u.Name, " ") == ""{
-		
+		u, err := url.Parse(g.u.Url)
+		if err != nil {
+			return ""
+		}
+		match := strings.Split(strings.TrimLeft(u.Path, "/"), "/")
+		if len(match) > 0 {
+			return match[0]
+		}
 	}
 	return g.u.Name
 }
