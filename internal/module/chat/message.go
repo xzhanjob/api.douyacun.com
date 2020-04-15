@@ -23,6 +23,7 @@ const (
 	FileMsg   msgType = "FILE"
 	SystemMsg msgType = "SYSTEM"
 	TipMsg    msgType = "TIP"
+	OnlineMsg msgType = "ONLINE"
 )
 
 type shortAcct struct {

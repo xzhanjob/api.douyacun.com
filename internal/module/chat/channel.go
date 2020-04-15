@@ -161,7 +161,6 @@ func (*channel) Private(ctx *gin.Context, v *validate.ChannelCreateValidator) (c
     }
   }
 }`, acct.Id, v.Members[0], v.Members[0], acct.Id, v.Type)
-		logger.Debug("query: %s", query)
 		res, err := db.ES.Search(
 			db.ES.Search.WithIndex(consts.IndicesChannelConst),
 			db.ES.Search.WithBody(strings.NewReader(query)),
