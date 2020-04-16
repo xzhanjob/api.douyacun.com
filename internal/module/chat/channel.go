@@ -5,7 +5,6 @@ import (
 	"dyc/internal/consts"
 	"dyc/internal/db"
 	"dyc/internal/derror"
-	"dyc/internal/logger"
 	"dyc/internal/module/account"
 	"dyc/internal/validate"
 	"encoding/json"
@@ -131,6 +130,7 @@ func (*channel) Create(ctx *gin.Context, v *validate.ChannelCreateValidator) (c 
 			Title:     title,
 			Creator:   a.(*account.Account),
 			CreatedAt: time.Now(),
+			Type:      v.Type,
 		}
 		c.Title = c.getTitle(acct.Id)
 	} else {
@@ -148,19 +148,52 @@ func (*channel) Private(ctx *gin.Context, v *validate.ChannelCreateValidator) (c
   "query": {
     "bool": {
       "should": [
-        [
-          { "term": { "creator.id": "%s" } },
-          { "term": { "members.id": "%s" } }
-        ],
-        [
-          { "term": { "creator.id": "%s" } },
-          { "term": { "members.id": "%s" } }
-        ]
-      ],
-      "filter": { "term": { "type": "%s" } }
+        {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "creator.id": "%s"
+                }
+              },
+              {
+                "term": {
+                  "members.id": "%s"
+                }
+              },
+              {
+                "term": {
+                  "type": "%s"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "creator.id": "%s"
+                }
+              },
+              {
+                "term": {
+                  "members.id": "%s"
+                }
+              },
+              {
+                "term": {
+                  "type": "%s"
+                }
+              }
+            ]
+          }
+        }
+      ]
     }
   }
-}`, acct.Id, v.Members[0], v.Members[0], acct.Id, v.Type)
+}`, acct.Id, v.Members[0], v.Type, v.Members[0], acct.Id, v.Type)
 		res, err := db.ES.Search(
 			db.ES.Search.WithIndex(consts.IndicesChannelConst),
 			db.ES.Search.WithBody(strings.NewReader(query)),
@@ -184,11 +217,7 @@ func (*channel) Private(ctx *gin.Context, v *validate.ChannelCreateValidator) (c
 			c = &r.Hits.Hits[0].Source
 			c.Id = r.Hits.Hits[0].Id
 			// 私聊频道需要使用对方名称作为标题
-			if c.Creator.Id == acct.Id {
-				c.Title = c.Creator.Name
-			} else {
-				c.Title = c.Members[0].Name
-			}
+			c.Title = c.getTitle(acct.Id)
 			return c, true
 		} else {
 			return c, false
@@ -342,7 +371,6 @@ func (*channel) Messages(channelId string, start time.Time, end time.Time) (uint
   "sort": { "date": { "order": "desc" } },
   "size": 20
 }`, channelId, start.Format(format), end.Format(format))
-	logger.Debugf("%s", query)
 	res, err := db.ES.Search(
 		db.ES.Search.WithIndex(consts.IndicesMessageConst),
 		db.ES.Search.WithBody(strings.NewReader(query)),
