@@ -30,8 +30,8 @@ func Run(dir string) {
 		for _, file := range articles {
 			wg.Add(1)
 			logger.Debugf("analyze file: %s", file)
-			go func(topicTitle, file string, w *sync.WaitGroup) {
-				defer w.Done()
+			go func(topicTitle, file string) {
+				defer wg.Done()
 				// 文件路径
 				filePath := path.Join(dir, strings.ToLower(topicTitle), file)
 				a, err := NewArticle(filePath)
@@ -50,7 +50,7 @@ func Run(dir string) {
 					logger.Errorf("elasticsearch 存储失败: %s", err)
 					return
 				}
-			}(topicTitle, file, &wg)
+			}(topicTitle, file)
 		}
 	}
 	wg.Wait()
