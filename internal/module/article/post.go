@@ -2,11 +2,9 @@ package article
 
 import (
 	"bytes"
-	"crypto/md5"
 	"dyc/internal/consts"
 	"dyc/internal/db"
 	"dyc/internal/helper"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -171,5 +169,5 @@ func (c *_post) ConvertContentWebP(ctx *gin.Context, content string) string {
 
 // 拼接文章id md5(user.key-topic-文件名称)
 func (c *_post) GenerateId(topic, key, filename string) string {
-	return hex.EncodeToString(md5.New().Sum([]byte(fmt.Sprintf("%s-%s-%s", topic, key, filename))))
+	return helper.Md532([]byte(fmt.Sprintf("%s-%s-%s", topic, key, filename)))
 }
