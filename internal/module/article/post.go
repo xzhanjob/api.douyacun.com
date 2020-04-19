@@ -24,7 +24,7 @@ var (
 
 type _post struct{}
 
-type view struct {
+type Article struct {
 	Title                    string    `json:"title"`
 	Keywords                 string    `json:"keywords"`
 	Label                    string    `json:"label"`
@@ -37,7 +37,7 @@ type view struct {
 	Email                    string    `json:"email"`
 	Github                   string    `json:"github"`
 	Key                      string    `json:"key"`
-	ID                       string    `json:"id"`
+	Id                       string    `json:"id"`
 	Topic                    string    `json:"topic"`
 	FilePath                 string    `json:"-"`
 	WechatSubscriptionQrcode string    `json:"wechat_subscription_qrcode"`

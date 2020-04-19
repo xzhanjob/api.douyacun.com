@@ -249,7 +249,6 @@ func (a *Article) Storage(index string) (err error) {
 	if err = json.NewEncoder(&buf).Encode(a); err != nil {
 		return
 	}
-
 	res, err := db.ES.Index(
 		index,
 		strings.NewReader(buf.String()),
@@ -262,5 +261,6 @@ func (a *Article) Storage(index string) (err error) {
 		resp, _ := ioutil.ReadAll(res.Body)
 		return errors.New(string(resp))
 	}
+	logger.Debugf("storage: 《%s》存储成功", a.Title)
 	return
 }

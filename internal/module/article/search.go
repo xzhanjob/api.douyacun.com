@@ -5,6 +5,7 @@ import (
 	"dyc/internal/consts"
 	"dyc/internal/db"
 	"encoding/json"
+	"fmt"
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"time"
@@ -23,32 +24,25 @@ type _search struct {
 	Highlight    []string  `json:"highlight"`
 }
 
-func (*_search) List(q string) (total int64, data []interface{}, err error) {
-	type response struct {
-		Hits struct {
-			Total struct {
-				Value int64 `json:"value"`
-			} `json:"total"`
-			Hits []struct {
-				Source struct {
-					Date         time.Time `json:"date"`
-					LastEditTime time.Time `json:"last_edit_time"`
-					Author       string    `json:"author"`
-					Topic        string    `json:"topic"`
-					Id           string    `json:"id"`
-					Title        string    `json:"title"`
-				} `json:"_source"`
-				Highlight struct {
-					Content []string `json:"content"`
-				} `json:"highlight"`
-			} `json:"hits"`
+type response struct {
+	Hits struct {
+		Total struct {
+			Value int64 `json:"value"`
+		} `json:"total"`
+		Hits []struct {
+			Article   Article `json:"_source"`
+			Highlight struct {
+				Content []string `json:"content"`
+			} `json:"highlight"`
 		} `json:"hits"`
-	}
+	} `json:"hits"`
+}
+
+func (*_search) List(q string) (total int64, data []interface{}, err error) {
 	var (
 		buf bytes.Buffer
 		r   response
 	)
-
 	data = make([]interface{}, 0)
 	query := map[string]interface{}{
 		"_source": []string{"author", "title", "description", "topic", "id", "date", "last_edit_time"},
@@ -85,14 +79,59 @@ func (*_search) List(q string) (total int64, data []interface{}, err error) {
 	total = r.Hits.Total.Value
 	for _, v := range r.Hits.Hits {
 		tmp := map[string]interface{}{
-			"date":      v.Source.Date,
-			"id":        v.Source.Id,
-			"author":    v.Source.Author,
-			"topic":     v.Source.Topic,
-			"title":     v.Source.Title,
+			"date":      v.Article.Date,
+			"id":        v.Article.Id,
+			"author":    v.Article.Author,
+			"topic":     v.Article.Topic,
+			"title":     v.Article.Title,
 			"highlight": v.Highlight.Content,
 		}
 		data = append(data, tmp)
 	}
 	return
 }
+
+func (s *_search) All(source []string) {
+	type count struct {
+		Count int `json:"count"`
+	}
+	res, err := db.ES.Count(
+		db.ES.Count.WithIndex(consts.IndicesArticleCost),
+	)
+	if err != nil {
+		panic(errors.Wrap(err, "sitemap es count error"))
+	}
+	if res.IsError() {
+		panic(errors.Wrap(err, "es 查询错误"))
+	}
+	var total count
+	if err := json.NewDecoder(res.Body).Decode(&total); err != nil {
+		panic(errors.Wrap(err, "sitemap es count response body json decode error"))
+	}
+	query := fmt.Sprintf(`{
+		"size": "%d",
+		"_source": "id",
+	}`, total.Count)
+	res, err = db.ES.Search(
+		db.ES.Search.WithIndex(consts.IndicesArticleCost),
+		db.ES.Search.WithQuery(query),
+	)
+	if err != nil {
+		panic(errors.Wrap(err, "all articles search error"))
+	}
+	defer res.Body.Close()
+	if res.IsError() {
+		panic(errors.Wrap(err, "all articles search es response error"))
+	}
+	var (
+		resp     response
+		articles []Article
+	)
+	if err = json.NewDecoder(res.Body).Decode(&resp); err != nil {
+		panic(errors.Wrap(err, "all articles search es response json decode error"))
+	}
+	for _, v := range resp.Hits.Hits {
+		articles = append(articles, v.Article)
+	}
+}
+

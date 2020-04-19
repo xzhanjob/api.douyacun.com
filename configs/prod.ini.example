@@ -4,6 +4,7 @@ port=:9003
 [path]
 log_file=/storage/logs/douyacun.log
 image_dir=/images/blog
+sitemap_dir=/torage/images/
 
 [elasticsearch]
 address=http://localhost:9200

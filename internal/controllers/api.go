@@ -36,6 +36,7 @@ func NewRouter(router *gin.Engine) {
 			auth.GET("/ws/channel/messages", Channel.Messages)
 			auth.GET("/account/list", Account.List)
 		}
+		api.GET("/seo/sitemap")
 	}
 	router.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
