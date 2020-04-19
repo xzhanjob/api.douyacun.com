@@ -5,7 +5,6 @@ import (
 	"dyc/internal/consts"
 	"dyc/internal/db"
 	"encoding/json"
-	"fmt"
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"time"
@@ -91,7 +90,7 @@ func (*_search) List(q string) (total int64, data []interface{}, err error) {
 	return
 }
 
-func (s *_search) All(source []string) {
+func (s *_search) All(source []string) *[]Article {
 	type count struct {
 		Count int `json:"count"`
 	}
@@ -108,13 +107,17 @@ func (s *_search) All(source []string) {
 	if err := json.NewDecoder(res.Body).Decode(&total); err != nil {
 		panic(errors.Wrap(err, "sitemap es count response body json decode error"))
 	}
-	query := fmt.Sprintf(`{
-		"size": "%d",
-		"_source": "id",
-	}`, total.Count)
+	var buf bytes.Buffer
+	query := map[string]interface{}{
+		"size":    total.Count,
+		"_source": source,
+	}
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		panic(err)
+	}
 	res, err = db.ES.Search(
 		db.ES.Search.WithIndex(consts.IndicesArticleCost),
-		db.ES.Search.WithQuery(query),
+		db.ES.Search.WithBody(&buf),
 	)
 	if err != nil {
 		panic(errors.Wrap(err, "all articles search error"))
@@ -133,5 +136,5 @@ func (s *_search) All(source []string) {
 	for _, v := range resp.Hits.Hits {
 		articles = append(articles, v.Article)
 	}
+	return &articles
 }
-

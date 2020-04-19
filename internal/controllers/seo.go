@@ -1,11 +1,19 @@
 package controllers
 
-import "github.com/gin-gonic/gin"
+import (
+	"dyc/internal/helper"
+	"dyc/internal/module/seo"
+	"github.com/gin-gonic/gin"
+)
 
-var Seo seo
+var Seo _seo
 
-type seo struct{}
+type _seo struct{}
 
-func (s *seo) SiteMap(ctx *gin.Context) {
-
+func (s *_seo) SiteMap(ctx *gin.Context) {
+	if err := seo.Sitemap.Generate(ctx); err != nil {
+		helper.Fail(ctx, err)
+		return
+	}
+	helper.Success(ctx, "success")
 }
