@@ -63,11 +63,6 @@ func (*_article) Delete(index string) error {
 			resp, _ := ioutil.ReadAll(res.Body)
 			return errors.New(string(resp))
 		}
-		_, _ = db.ES.Index(
-			index,
-			strings.NewReader(""),
-			db.ES.Index.WithRefresh("true"),
-		)
 	}
 	return nil
 }
@@ -99,6 +94,5 @@ func (*_article) ReindexAndDeleteSource(source, dest string) (err error) {
 		return errors.New(string(resp))
 	}
 	logger.Debugf("reindex response: %s", resp)
-	return nil
-	//return Indices.Article.Delete(source)
+	return Indices.Article.Delete(source)
 }
