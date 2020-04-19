@@ -80,7 +80,7 @@ func (*_article) ReindexAndDeleteSource(source, dest string) (err error) {
 		"index": "%s"
 	  }
 	}`, source, dest)
-	logger.Debugf("reindex source(%s) desc(%s)",source, dest)
+	logger.Debugf("reindex source(%s) desc(%s)", source, dest)
 	res, err := db.ES.Reindex(
 		strings.NewReader(query),
 	)
@@ -92,5 +92,6 @@ func (*_article) ReindexAndDeleteSource(source, dest string) (err error) {
 		resp, _ := ioutil.ReadAll(res.Body)
 		return errors.New(string(resp))
 	}
-	return Indices.Article.Delete(source)
+	return nil
+	//return Indices.Article.Delete(source)
 }
