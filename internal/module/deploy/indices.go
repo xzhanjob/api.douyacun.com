@@ -63,6 +63,11 @@ func (*_article) Delete(index string) error {
 			resp, _ := ioutil.ReadAll(res.Body)
 			return errors.New(string(resp))
 		}
+		_, _ = db.ES.Index(
+			index,
+			strings.NewReader(""),
+			db.ES.Index.WithRefresh("true"),
+		)
 	}
 	return nil
 }
