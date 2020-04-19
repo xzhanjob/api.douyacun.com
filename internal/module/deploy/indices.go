@@ -93,10 +93,11 @@ func (*_article) ReindexAndDeleteSource(source, dest string) (err error) {
 		return errors.Wrap(err, "es reindex错误")
 	}
 	defer res.Body.Close()
+	resp, _ := ioutil.ReadAll(res.Body)
 	if res.IsError() {
-		resp, _ := ioutil.ReadAll(res.Body)
 		return errors.New(string(resp))
 	}
+	logger.Debugf("reindex response: %s", resp)
 	return nil
 	//return Indices.Article.Delete(source)
 }
