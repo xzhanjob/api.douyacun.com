@@ -22,7 +22,7 @@ func (s *sitemap) Generate(ctx *gin.Context) error {
 	st.SetPretty(true)
 	st.SetCompress(false)
 	st.SetDefaultHost("https://www.douyacun.com")
-	st.SetPublicPath(config.GetKey("path::storage_dir").String())
+	st.SetPublicPath(config.GetKey("path::seo_dir").String())
 	host := "https://www.douyacun.com/article/%s"
 
 	url := gositemap.NewUrl()
@@ -44,4 +44,10 @@ func (s *sitemap) Generate(ctx *gin.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (s *sitemap) Ping(ctx *gin.Context) {
+	//url := "https://www.douyacun.com/sitemap.xml"
+	//host := []string{"https://www.http://www.google.com/ping?sitemap="+url}
+	//http.NewRequest("GET", )
 }
