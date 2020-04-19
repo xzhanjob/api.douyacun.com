@@ -88,6 +88,7 @@ func (*_article) ReindexAndDeleteSource(source, dest string) (err error) {
 	logger.Debugf("reindex source(%s) desc(%s)", source, dest)
 	res, err := db.ES.Reindex(
 		strings.NewReader(query),
+		db.ES.Reindex.WithRefresh(true),
 	)
 	if err != nil {
 		return errors.Wrap(err, "es reindex错误")
