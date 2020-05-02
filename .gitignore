@@ -3,5 +3,6 @@
 .DS_Store
 bin/
 storage/douyacun.pid
+storage
 /configs/douyacun.yml
 douyacun
