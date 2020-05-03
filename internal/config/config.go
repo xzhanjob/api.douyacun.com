@@ -18,8 +18,6 @@ func Init(env string) *ini.File {
 	)
 	switch env {
 	case "debug":
-		gin.SetMode(gin.DebugMode)
-		//ini
 		Config, err = ini.Load("configs/debug.ini")
 		gin.SetMode(gin.DebugMode)
 		logger.SetLevel("debug")

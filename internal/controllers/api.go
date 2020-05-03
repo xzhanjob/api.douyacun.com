@@ -10,6 +10,7 @@ import (
 func NewRouter(router *gin.Engine) {
 	hub := chat.NewHub()
 	go hub.Run()
+	router.Use(middleware.Trace())
 	api := router.Group("/api")
 	{
 		// 文章
@@ -25,6 +26,7 @@ func NewRouter(router *gin.Engine) {
 		api.GET("/video/:id", Media.View)
 		api.GET("/oauth/github", Oauth.Github)
 		api.POST("/oauth/google", Oauth.Google)
+		api.GET("/media/info", Media.Info)
 		// websocket
 		auth := api.Group("/", middleware.LoginCheck())
 		{

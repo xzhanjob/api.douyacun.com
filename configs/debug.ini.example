@@ -8,3 +8,4 @@ image_dir=/Users/liuning/Documents/gitlab/api.douyacun.com/storage/images/blog
 
 [elasticsearch]
 address=http://douyacun.com:9200
+

@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"dyc/internal/db"
 	"dyc/internal/helper"
+	"dyc/internal/models"
 	"dyc/internal/module/media"
 	"github.com/gin-gonic/gin"
 	"strconv"
@@ -61,3 +63,12 @@ func (*_Media) Search(ctx *gin.Context) {
 	helper.Success(ctx, gin.H{"total": total, "data": data})
 }
 
+func (*_Media) Info(ctx *gin.Context) {
+	var result models.FooModel
+	if err := db.Write(ctx).Where("id = ?", 3).First(&result).Error; err != nil {
+		helper.Fail(ctx, err)
+		return
+	}
+	helper.Success(ctx, result)
+	return
+}
