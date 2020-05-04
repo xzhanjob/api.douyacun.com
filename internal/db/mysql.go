@@ -2,29 +2,30 @@ package db
 
 import (
 	"dyc/internal/logger"
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"sync"
 )
 
-var DB *gorm.DB
-var DB_ONCE sync.Once
+var write *gorm.DB
 
-func NewDB(dsn string){
-	DB_ONCE.Do(func() {
-		// videos_t
-		var err error
-		DB, err = gorm.Open("mysql", dsn)
-		if err != nil {
-			logger.Fatal("gorm open %s", err)
-		}
-		if err = DB.DB().Ping(); err != nil {
-			logger.Fatal(err)
-		}
-		DB.SingularTable(true)
-	})
+func InitMysql(dsn string) {
+	// videos_t
+	var err error
+	write, err = gorm.Open("mysql", dsn)
+	if err != nil {
+		logger.Fatal("gorm open %s", err)
+	}
+	if err = write.DB().Ping(); err != nil {
+		logger.Fatal(err)
+	}
+	write.SingularTable(true)
 }
 
-func Close()  {
-	_ = DB.Close()
+func Write(ctx *gin.Context) *gorm.DB {
+	return write
+}
+
+func Close() {
+	_ = write.Close()
 }

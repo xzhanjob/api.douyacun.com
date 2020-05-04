@@ -41,4 +41,8 @@ func NewRouter(router *gin.Engine) {
 	router.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
 	})
+	foo := router.Group("/foo")
+	{
+		foo.GET("/transaction", Foo.Transaction)
+	}
 }
