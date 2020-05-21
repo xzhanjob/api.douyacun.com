@@ -4,35 +4,52 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"strconv"
+	"time"
 )
 
-var defaultMetricPath = "/metrics"
+const DefaultMetricPath = "/metrics"
 
-var requestTotal = prometheus.NewCounter(prometheus.CounterOpts{
-	Name: "request_total",
-	Help: "How many HTTP requests processed, partitioned by status code and HTTP method",
-})
+var httpRequestTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Name: "http_request_total",
+	Help: "counter: 统计请求数量",
+}, []string{"code", "method", "handler", "host", "url"})
+
+var httpRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	Name: "http_request_duration",
+	Help: "histogram：统计响应时间",
+}, []string{"code", "method", "handler", "url"})
+
+func init() {
+	// 注册收集器
+	prometheus.MustRegister(httpRequestTotal)
+	prometheus.MustRegister(httpRequestDuration)
+}
 
 type monitor struct{}
 
-func NewMonitor(ctx *gin.Engine) *monitor {
+func NewMonitor(e *gin.Engine) *monitor {
+
 	m := &monitor{}
-	m.Use(ctx)
-	ctx.Use(m.HandleFunc())
-}
-
-func (m *monitor) Use(ctx *gin.Engine) {
-
+	// 注册metrics路由
+	e.GET(DefaultMetricPath, prometheusHandler())
+	// 注册中间件
+	e.Use(m.HandleFunc())
+	return m
 }
 
 func (m *monitor) HandleFunc() gin.HandlerFunc {
-	return func(context *gin.Context) {
-		if context.Request.URL.Path == defaultMetricPath {
-			context.Next()
+	return func(ctx *gin.Context) {
+		// metrics 不统计
+		if ctx.Request.URL.Path == DefaultMetricPath {
+			ctx.Next()
 			return
 		}
-		requestTotal.Inc()
-		context.Next()
+		start := time.Now()
+		ctx.Next()
+		status := strconv.Itoa(ctx.Writer.Status())
+		httpRequestTotal.WithLabelValues(status, ctx.Request.Method, ctx.HandlerName(), ctx.Request.Host, ctx.Request.RequestURI).Inc()
+		httpRequestDuration.WithLabelValues(status, ctx.Request.Method, ctx.HandlerName(), ctx.Request.URL.Path).Observe(time.Since(start).Seconds())
 	}
 }
 
