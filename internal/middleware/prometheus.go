@@ -29,7 +29,6 @@ func init() {
 type monitor struct{}
 
 func NewMonitor(e *gin.Engine) *monitor {
-
 	m := &monitor{}
 	// 注册metrics路由
 	e.GET(DefaultMetricPath, prometheusHandler())

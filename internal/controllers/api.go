@@ -7,6 +7,10 @@ import (
 	"net/http"
 )
 
+func Init(e *gin.Engine)  {
+	middleware.NewMonitor(e)
+}
+
 func NewRouter(router *gin.Engine) {
 	hub := chat.NewHub()
 	go hub.Run()
