@@ -23,7 +23,7 @@ func startAction(c *cli.Context) (err error) {
 	// 加载配置文件
 	config.Init(c.String("env"))
 	// 启动web服务
-	initialize.Server()
+	initialize.Server(c.String("env"))
 
 	return nil
 }

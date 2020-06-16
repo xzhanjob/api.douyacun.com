@@ -21,18 +21,23 @@ import (
 	"time"
 )
 
-func Server() {
+func Server(env string) {
 	var (
 		engine *gin.Engine
-		err error
+		err    error
 	)
 	// 日志
 	logger.NewLogger(config.GetLogFD())
 	// 数据库
 	db.NewElasticsearch(config.GetKey("elasticsearch::address").Strings(","), config.GetKey("elasticsearch::user").String(), config.GetKey("elasticsearch::password").String())
 	// 启动gin
-	engine = gin.New()
-	engine.Use(recoverWithWrite(config.GetLogFD()))
+	switch env {
+	case "prod":
+		engine = gin.New()
+		engine.Use(recoverWithWrite(config.GetLogFD()))
+	default:
+		engine = gin.Default()
+	}
 
 	// 路由
 	controllers.NewRouter(engine)
@@ -55,7 +60,7 @@ func Server() {
 	<-quit
 
 	// 关闭服务器
-	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Fatal("web server close failed: %s", err)
@@ -96,8 +101,8 @@ func recoverWithWrite(out io.Writer) gin.HandlerFunc {
 					default:
 						buf := new(bytes.Buffer) // the returned data
 						err := errors.WithStack(err.(error))
-						fmt.Fprintf(buf,"%+v", err)
-						logger.Errorf("[Recovery] panic recovered:\n%s\n%s", strings.Join(headers, "\r\n"),  buf.String())
+						fmt.Fprintf(buf, "%+v", err)
+						logger.Errorf("[Recovery] panic recovered:\n%s\n%s", strings.Join(headers, "\r\n"), buf.String())
 						c.JSON(http.StatusInternalServerError, gin.H{"msg": "服务器出错了", "code": http.StatusInternalServerError})
 					}
 				}
