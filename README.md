@@ -64,18 +64,39 @@ if helper.Image.WebPSupportExt(ext) {
 ```
 
 # todo
-- [ ] markdown 本地跳转, 1-go-cannel.md
-- [ ] 封面功能，配置没有文件，取文档第一张图片作为封面
-- [ ] 没有描述的话，取文章前25个字作为描述，过滤掉`[TOC]`
-- [x] 图片转webp格式，实现图片压缩功能
-- [x] 部署文章时, 开启debug模式
-- [x] git提取文件创建时间，见helper.Git.LogFileLastCommitTime()
-- [x] 文章关键词提取
-- [x] travis ci 自动部署
-- [x] 图片提取
-- [x] 文章封面
-- [x] 首页文章分页, 文章按更新时间排序
-- [x] 前端js文件404问题(nextjs link 默认会是预加载页面： <Link> will automatically prefetch pages in the background )
-- [x] 制作favicon.ico
-- [x] 适配手机端
-- [x] 增加友盟
+
+- [x] 自动部署
+    - [x] travis ci 自动部署
+    - [x] 部署文章时, 开启debug模式
+- [ ] 文章数据分析
+    - [x] 文章封面
+        - [ ] 封面功能，配置没有文件，取文档第一张图片作为封面
+    - [x] 图片提取
+    - [x] 文章关键词提取
+    - [x] git提取文件创建时间，见helper.Git.LogFileLastCommitTime()
+    - [x] 图片转webp格式，实现图片压缩功能
+    - [ ] 没有描述的话，取文章前25个字作为描述，过滤掉`[TOC]`
+    - [x] markdown 本地跳转, 1-go-cannel.md
+- [ ] 页面样式
+   - [x] 适配手机端 
+   - [x] 制作favicon.ico
+   - [x] 前端js文件404问题(nextjs link 默认会是预加载页面： <Link> will automatically prefetch pages in the background )
+   - [x] 首页文章分页, 文章按更新时间排序
+- [ ] es响应结构体重构
+- [ ] 接入kong
+    - [ ] 增加前端consumer key-auth插件
+    - [ ] 增加限流
+        - [ ] 匿名用户限流
+        - [ ] 已登陆用户限流
+- [ ] 增加文章统计功能
+    - [x] 增加友盟
+    - [ ] ip 解析ip地址到城市
+        - [x] GEO ip
+        - [x] ipip
+        - [x] 高德地图API
+    - [ ] UA
+        - [ ] 浏览器
+        - [ ] 分辨率
+        - [ ] 语言
+        - [ ] 操作系统
+    - [ ] source
