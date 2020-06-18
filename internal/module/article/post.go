@@ -50,7 +50,6 @@ func (*_post) List(ctx *gin.Context, page int) (int64, []interface{}, error) {
 		data  = make([]interface{}, 0, PageSize)
 		total int64
 		buf   bytes.Buffer
-		r     map[string]interface{}
 		err   error
 	)
 	query := map[string]interface{}{
@@ -72,22 +71,24 @@ func (*_post) List(ctx *gin.Context, page int) (int64, []interface{}, error) {
 	)
 	defer res.Body.Close()
 	if err != nil {
-		panic(errors.Wrap(err, "es search failed"))
+		return 0, nil, err
 	}
 	if res.IsError() {
 		resp, _ := ioutil.ReadAll(res.Body)
 		panic(errors.New(string(resp)))
 	}
+	var r db.ESListResponse
 	if err = json.NewDecoder(res.Body).Decode(&r); err != nil {
-		panic(errors.Wrap(err, "json decode 错误"))
+		return 0, nil, err
 	}
 	// 总条数
-	total = int64(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64))
-
-	for _, v := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
-		data = append(data, v.(map[string]interface{})["_source"])
+	total = int64(r.Hits.Total.Value)
+	for _, v := range r.Hits.Hits {
+		var item db.ESItemResponse
+		if err = json.Unmarshal(v, &item); err == nil {
+			data = append(data, item.Source)
+		}
 	}
-
 	return total, data, nil
 }
 
