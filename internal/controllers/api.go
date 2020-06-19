@@ -27,6 +27,7 @@ func NewRouter(router *gin.Engine) {
 		api.POST("/oauth/google", Oauth.Google)
 		// kong
 		api.GET("/kong/preserve_host", Kong.PreserveHost)
+		api.GET("/kong/weather", Kong.Weather)
 		// websocket
 		auth := api.Group("/", middleware.LoginCheck())
 		{
