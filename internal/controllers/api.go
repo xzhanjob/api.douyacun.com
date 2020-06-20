@@ -25,9 +25,13 @@ func NewRouter(router *gin.Engine) {
 		api.GET("/video/:id", Media.View)
 		api.GET("/oauth/github", Oauth.Github)
 		api.POST("/oauth/google", Oauth.Google)
-		// kong
-		api.GET("/kong/preserve_host", Kong.PreserveHost)
-		api.GET("/kong/weather", Kong.Weather)
+		// 工具
+		util := api.Group("/util")
+		{
+			util.GET("/preserve_host", Util.PreserveHost)
+			util.GET("/weather", Util.Weather)
+			util.GET("/ip/position",Util.Ip)
+		}
 		// websocket
 		auth := api.Group("/", middleware.LoginCheck())
 		{

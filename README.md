@@ -78,7 +78,7 @@ if helper.Image.WebPSupportExt(ext) {
     - [ ] 没有描述的话，取文章前25个字作为描述，过滤掉`[TOC]`
     - [x] markdown 本地跳转, 1-go-cannel.md
 - [ ] 页面样式
-   - [x] 适配手机端 
+   - [x] 适配手机端
    - [x] 制作favicon.ico
    - [x] 前端js文件404问题(nextjs link 默认会是预加载页面： <Link> will automatically prefetch pages in the background )
    - [x] 首页文章分页, 文章按更新时间排序
@@ -88,7 +88,8 @@ if helper.Image.WebPSupportExt(ext) {
     - [ ] 增加限流
         - [ ] 匿名用户限流
         - [ ] 已登陆用户限流
-- [ ] 增加文章统计功能
+- [ ] 报表
+    - [ ] 地理坐标获取
     - [x] 增加友盟
     - [ ] ip 解析ip地址到城市
         - [x] GEO ip
