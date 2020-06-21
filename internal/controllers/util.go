@@ -27,5 +27,10 @@ func (*_util) Weather(ctx *gin.Context) {
 
 func (*_util) Ip(ctx *gin.Context) {
 	//ip := ctx.ClientIP()
-	_, _ = util.GeoIP("180.165.152.21")
+	ip := "175.44.108.169"
+	res, err := util.IPIP(ip)
+	if err != nil || res["city"] == "" {
+		res, _ = util.GeoIP(ip)
+	}
+	helper.Success(ctx, res)
 }

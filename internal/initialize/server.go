@@ -40,6 +40,7 @@ func Server(env string) {
 	}
 
 	// 路由
+	controllers.Init(engine)
 	controllers.NewRouter(engine)
 	port := config.GetKey("server::port").String()
 	server := http.Server{

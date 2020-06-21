@@ -3,9 +3,14 @@ package controllers
 import (
 	"dyc/internal/middleware"
 	"dyc/internal/module/chat"
+	"dyc/internal/module/util"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
+
+func Init(engine *gin.Engine) {
+	util.Init()
+}
 
 func NewRouter(router *gin.Engine) {
 	hub := chat.NewHub()
@@ -30,7 +35,7 @@ func NewRouter(router *gin.Engine) {
 		{
 			util.GET("/preserve_host", Util.PreserveHost)
 			util.GET("/weather", Util.Weather)
-			util.GET("/ip/position",Util.Ip)
+			util.GET("/ip/position", Util.Ip)
 		}
 		// websocket
 		auth := api.Group("/", middleware.LoginCheck())
