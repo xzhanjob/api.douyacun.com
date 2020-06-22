@@ -14,6 +14,7 @@ func main() {
 	app.Commands = []cli.Command{
 		commands.Start,
 		commands.Deploy,
+		commands.AdCode,
 	}
 	err := app.Run(os.Args)
 	if err != nil {

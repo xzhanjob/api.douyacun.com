@@ -24,7 +24,6 @@ func Init() {
 
 func IPIP(ip string) (map[string]string, error) {
 	  info, err := ipipdb.FindMap(ip, "CN")
-	  ipipdb.FindInfo()
 	  if err != nil {
 	  	return nil, err
 	  }
