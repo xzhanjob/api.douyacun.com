@@ -22,18 +22,18 @@ func Init() {
 	geoipdb, _ = geoip2.Open(config.GetKey("ip::geo_file").String())
 }
 
-func IPIP(ip string) (map[string]string, error) {
-	  info, err := ipipdb.FindMap(ip, "CN")
-	  if err != nil {
-	  	return nil, err
-	  }
-	  res := make(map[string]string)
-	  res["city"] = info["city_name"]
-	  res["country"] = info["country_name"]
-	  return res, nil
+func ipip(ip string) (map[string]string, error) {
+	info, err := ipipdb.FindMap(ip, "CN")
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[string]string)
+	res["city"] = info["city_name"]
+	res["country"] = info["country_name"]
+	return res, nil
 }
 
-func GeoIP(ip string) (map[string]string, error) {
+func geoip(ip string) (map[string]string, error) {
 	record, err := geoipdb.City(net.ParseIP(ip))
 	if err != nil {
 		return nil, err
@@ -46,4 +46,12 @@ func GeoIP(ip string) (map[string]string, error) {
 	res["latitude"] = fmt.Sprintf("%f", record.Location.Latitude)
 	res["longitude"] = fmt.Sprintf("%f", record.Location.Latitude)
 	return res, nil
+}
+
+func LocationByIp(ip string) (map[string]string, error) {
+	res, err := ipip(ip)
+	if err != nil || res["city"] == "" {
+		res, err = geoip(ip)
+	}
+	return res, err
 }

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
-	"strings"
 )
 
 var Util *_util
@@ -30,46 +29,16 @@ func (*_util) Weather(ctx *gin.Context) {
 func (*_util) Ip(ctx *gin.Context) {
 	//ip := ctx.ClientIP()
 	ip := "175.44.108.169"
-	res, err := util.IPIP(ip)
-	if err != nil || res["city"] == "" {
-		res, _ = util.GeoIP(ip)
+	res, err := util.LocationByIp(ip)
+	if err != nil {
+		helper.Fail(ctx, err)
+		return
 	}
 	helper.Success(ctx, res)
+	return
 }
 
-func (*_util) City(ctx *gin.Context) {
-	if name, exists := ctx.GetQuery("name"); !exists {
-		helper.Fail(ctx, errors.New("请指定区域名称,支持省市县三级查询"))
-		return
-	} else {
-		if regions, err := util.AdCoder.FindByName(ctx, name); err != nil {
-			helper.Fail(ctx, err)
-			return
-		} else {
-			var city util.AdCode
-			for _, v := range *regions {
-				if v.IsCity(ctx, v.Adcode) && strings.HasPrefix(v.Name, name) {
-					if strings.Contains(v.Name, "市辖区") {
-						v.Name = v.Name[:len(v.Name)-9]
-					}
-					city = v
-					break
-				}
-			}
-			province, err := city.BelongProvince(ctx, city.Adcode)
-			if err != nil {
-				helper.Fail(ctx, err)
-				return
-			}
-			helper.Success(ctx, gin.H{
-				"city":     city,
-				"province": province,
-			})
-		}
-	}
-}
-
-func (*_util) Location(ctx *gin.Context) {
+func (*_util) Amap(ctx *gin.Context) {
 	latitude, exists := ctx.GetQuery("latitude")
 	if !exists {
 		helper.Fail(ctx, errors.New("请指定经纬度"))
@@ -85,6 +54,43 @@ func (*_util) Location(ctx *gin.Context) {
 		return
 	} else {
 		helper.Success(ctx, address)
+		return
+	}
+}
+
+func (*_util) Location(ctx *gin.Context) {
+	latitude := ctx.Query("latitude")
+	longitude := ctx.Query("longitude")
+	if latitude != "" && longitude != "" {
+		if address, err := util.Location.FindByGeoCode(ctx, latitude, longitude); err == nil {
+			if address.AdCode != "" {
+				if res, err := util.AdCoder.Component(ctx, address.AdCode); err == nil {
+					helper.Success(ctx, res)
+					return
+				}
+			}
+		}
+	}
+	ip := ctx.ClientIP()
+	if l, err := util.LocationByIp(ip); err != nil {
+		helper.Fail(ctx, err)
+		return
+	} else {
+		if l["city"] != "" {
+			if city, err := util.AdCoder.FindCity(ctx, l["city"]); err != nil {
+				helper.Fail(ctx, err)
+				return
+			} else {
+				if res, err := util.AdCoder.Component(ctx, city.Adcode); err != nil {
+					helper.Fail(ctx, err)
+					return
+				} else {
+					helper.Success(ctx, res)
+					return
+				}
+			}
+		}
+		helper.Fail(ctx, errors.New("not found!"))
 		return
 	}
 }

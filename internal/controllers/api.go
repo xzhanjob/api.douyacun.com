@@ -41,8 +41,8 @@ func NewRouter(router *gin.Engine) {
 			// 地区
 			region := utils.Group("/region")
 			{
-				region.GET("/city", Util.City)
-				region.GET("/geocode", Util.Location)
+				region.GET("/amap", Util.Amap)
+				region.GET("/location", Util.Location)
 			}
 		}
 		// websocket
