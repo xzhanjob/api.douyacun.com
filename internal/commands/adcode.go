@@ -5,12 +5,14 @@ import (
 	"dyc/internal/config"
 	"dyc/internal/consts"
 	"dyc/internal/db"
+	"dyc/internal/logger"
 	"encoding/csv"
 	"fmt"
-	"github.com/prometheus/common/log"
+	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 var AdCode = cli.Command{
@@ -47,9 +49,35 @@ func adcode(c *cli.Context) error {
 }
 
 func replaceIndices() {
-	db.ES.Indices.Exists(
+	res, err := db.ES.Indices.Exists(
 		[]string{consts.IndicesAdCodeConst},
 	)
+	if err != nil {
+		logger.Errorf("index exists: %s", err)
+		return
+	}
+	if res.StatusCode == 200 {
+		res, err := db.ES.Indices.Delete(
+			[]string{consts.IndicesAdCodeConst},
+		)
+		if err != nil {
+			logger.Errorf("index delete: %s", err)
+		}
+		esResponsePrint(res)
+	}
+	if res, err := db.ES.Indices.Create(
+		consts.IndicesAdCodeConst,
+		db.ES.Indices.Create.WithBody(strings.NewReader(consts.IndicesAdCodeMapping)),
+	); err != nil {
+		logger.Errorf()
+	}
+}
+
+func esResponsePrint(response *esapi.Response) {
+	if response.IsError() {
+		body, _ := ioutil.ReadAll(response.Body)
+		logger.Errorf("es response error: %s", body)
+	}
 }
 
 func storage(records [][]string) {
@@ -69,20 +97,16 @@ func storage(records [][]string) {
 	}
 	buf := bytes.NewBuffer(nil)
 	indexBulk := fmt.Sprintf(`{ "index":{"_index":"%s"}}`, consts.IndicesAdCodeConst)
-	for _, record := range records {
+	for i := start; i < len(records); i++ {
 		buf.WriteString(indexBulk)
 		buf.WriteString("\n")
-		buf.WriteString(fmt.Sprintf(`{"name": "%s", "adcode": %s, "citycode": %s}`, record[name], record[adCode], record[cityCode]))
+		buf.WriteString(fmt.Sprintf(`{"name": "%s", "adcode": %s, "citycode": %s}`, records[i][name], records[i][adCode], records[i][cityCode]))
 		buf.WriteString("\n")
 	}
 	res, err := db.ES.Bulk(buf)
 	if err != nil {
-		log.Error(err)
+		logger.Error(err)
 		return
 	}
-	if res.IsError() {
-		msg, _ := ioutil.ReadAll(res.Body)
-		log.Error("es bulk create error: %s", msg)
-		return
-	}
+	esResponsePrint(res)
 }
