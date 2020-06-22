@@ -80,5 +80,11 @@ func (*_util) Location(ctx *gin.Context) {
 		helper.Fail(ctx, errors.New("请指定经纬度"))
 		return
 	}
-	util.Location.FindByGeoCode()
+	if address, err := util.Location.FindByGeoCode(ctx, latitude, longitude); err != nil {
+		helper.Fail(ctx, err)
+		return
+	} else {
+		helper.Success(ctx, address)
+		return
+	}
 }
