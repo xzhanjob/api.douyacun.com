@@ -55,13 +55,13 @@ func (*_labels) List(size int) (data []string, err error) {
 		type _source struct {
 			Label string `json:"label"`
 		}
-		for _, v := range r.Hits.Hits {
-			var hits db.ESItemResponse
-			if err := json.Unmarshal(v, &hits); err != nil {
-				panic(err)
-			}
+		var hits []db.ESItemResponse
+		if err = json.Unmarshal(r.Hits.Hits, &hits); err != nil {
+			return nil, err
+		}
+		for _, v := range hits {
 			var source _source
-			if err := json.Unmarshal(hits.Source, &source); err != nil {
+			if err := json.Unmarshal(v.Source, &source); err != nil {
 				panic(err)
 			}
 			data = append(data, source.Label)

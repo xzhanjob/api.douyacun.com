@@ -5,6 +5,8 @@ import (
 	"dyc/internal/module/util"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
+	"strings"
 )
 
 var Util *_util
@@ -33,4 +35,36 @@ func (*_util) Ip(ctx *gin.Context) {
 		res, _ = util.GeoIP(ip)
 	}
 	helper.Success(ctx, res)
+}
+
+func (*_util) City(ctx *gin.Context) {
+	if name, exists := ctx.GetQuery("name"); !exists {
+		helper.Fail(ctx, errors.New("请指定区域名称,支持省市县三级查询"))
+		return
+	} else {
+		if regions, err := util.AdCoder.FindByName(ctx, name); err != nil {
+			helper.Fail(ctx, err)
+			return
+		} else {
+			var city util.AdCode
+			for _, v := range *regions {
+				if v.IsCity(ctx, v.Adcode) && strings.HasPrefix(v.Name, name) {
+					if strings.Contains(v.Name, "市辖区") {
+						v.Name = v.Name[:len(v.Name)-9]
+					}
+					city = v
+					break
+				}
+			}
+			province, err := city.BelongProvince(ctx, city.Adcode)
+			if err != nil {
+				helper.Fail(ctx, err)
+				return
+			}
+			helper.Success(ctx, gin.H{
+				"city":     city,
+				"province": province,
+			})
+		}
+	}
 }

@@ -24,7 +24,7 @@ type ESListResponse struct {
 			Relation string `json:"relation"`
 		} `json:"total"`
 		MaxScore float64         `json:"max_score"`
-		Hits     []json.RawMessage `json:"hits"`
+		Hits     json.RawMessage `json:"hits"`
 	} `json:"hits"`
 }
 

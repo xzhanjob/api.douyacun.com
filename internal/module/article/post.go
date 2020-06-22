@@ -83,11 +83,12 @@ func (*_post) List(ctx *gin.Context, page int) (int64, []interface{}, error) {
 	}
 	// 总条数
 	total = int64(r.Hits.Total.Value)
-	for _, v := range r.Hits.Hits {
-		var item db.ESItemResponse
-		if err = json.Unmarshal(v, &item); err == nil {
-			data = append(data, item.Source)
-		}
+	var hits []db.ESItemResponse
+	if err = json.Unmarshal(r.Hits.Hits, &hits); err != nil {
+		return 0, nil, err
+	}
+	for _, v := range hits {
+		data = append(data, v.Source)
 	}
 	return total, data, nil
 }

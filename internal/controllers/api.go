@@ -31,11 +31,18 @@ func NewRouter(router *gin.Engine) {
 		api.GET("/oauth/github", Oauth.Github)
 		api.POST("/oauth/google", Oauth.Google)
 		// 工具
-		util := api.Group("/util")
+		utils := api.Group("/utils")
 		{
-			util.GET("/preserve_host", Util.PreserveHost)
-			util.GET("/weather", Util.Weather)
-			util.GET("/ip/position", Util.Ip)
+			// 测试接口
+			utils.GET("/preserve_host", Util.PreserveHost)
+			utils.GET("/weather", Util.Weather)
+			// ip 地址解析
+			utils.GET("/ip/position", Util.Ip)
+			// 地区
+			region := utils.Group("/region")
+			{
+				region.GET("/city", Util.City)
+			}
 		}
 		// websocket
 		auth := api.Group("/", middleware.LoginCheck())
