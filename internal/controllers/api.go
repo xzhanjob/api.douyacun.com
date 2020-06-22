@@ -42,6 +42,7 @@ func NewRouter(router *gin.Engine) {
 			region := utils.Group("/region")
 			{
 				region.GET("/city", Util.City)
+				region.GET("/geocode", Util.City)
 			}
 		}
 		// websocket

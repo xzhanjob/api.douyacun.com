@@ -68,3 +68,17 @@ func (*_util) City(ctx *gin.Context) {
 		}
 	}
 }
+
+func (*_util) Location(ctx *gin.Context) {
+	latitude, exists := ctx.GetQuery("latitude")
+	if !exists {
+		helper.Fail(ctx, errors.New("请指定经纬度"))
+		return
+	}
+	longitude, exists := ctx.GetQuery("longitude")
+	if !exists {
+		helper.Fail(ctx, errors.New("请指定经纬度"))
+		return
+	}
+	util.Location.FindByGeoCode()
+}
