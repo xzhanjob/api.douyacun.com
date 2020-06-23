@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"dyc/internal/helper"
+	"dyc/internal/logger"
 	"dyc/internal/module/util"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
@@ -64,11 +65,13 @@ func (*_util) Location(ctx *gin.Context) {
 	if latitude != "" && longitude != "" {
 		if address, err := util.Location.FindByGeoCode(ctx, latitude, longitude); err == nil {
 			if address.AdCode != "" {
-				if res, err := util.AdCoder.Component(ctx, address.AdCode); err == nil {
+				if res, err := util.AdCoder.Component(ctx, string(address.AdCode)); err == nil {
 					helper.Success(ctx, res)
 					return
 				}
 			}
+		} else {
+			logger.Debugf("amap request error: %s", err)
 		}
 	}
 	ip := ctx.ClientIP()
@@ -90,7 +93,19 @@ func (*_util) Location(ctx *gin.Context) {
 				}
 			}
 		}
-		helper.Fail(ctx, errors.New("not found!"))
+		defualt := gin.H{
+			"city": gin.H{
+				"name": "北京市",
+				"adcode": "110100",
+				"city_code": "",
+			},
+			"province": gin.H{
+				"name": "北京市",
+				"adcode": "110000",
+				"city_code": "",
+			},
+		}
+		helper.Success(ctx, defualt)
 		return
 	}
 }

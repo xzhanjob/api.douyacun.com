@@ -27,12 +27,12 @@ func (a *amapString) UnmarshalJSON(b []byte) error {
 }
 
 type addressComponent struct {
-	Province     string     `json:"province"`
+	Province     amapString `json:"province"`
 	City         amapString `json:"city"`
-	CityCode     string     `json:"citycode"`
-	District     string     `json:"district"`
-	AdCode       string     `json:"adcode"`
-	Towncode     string     `json:"towncode"`
+	CityCode     amapString `json:"citycode"`
+	District     amapString `json:"district"`
+	AdCode       amapString `json:"adcode"`
+	Towncode     amapString `json:"towncode"`
 	Neighborhood struct {
 		Name amapString `json:"name"`
 		Type amapString `json:"type"`
@@ -42,11 +42,11 @@ type addressComponent struct {
 		Type amapString `json:"type"`
 	} `json:"building"`
 	StreetNumber struct {
-		Street    string `json:"street"`
-		Number    string `json:"number"`
-		Location  string `json:"location"`
-		Direction string `json:"direction"`
-		Distance  string `json:"distance"`
+		Street    amapString `json:"street"`
+		Number    amapString `json:"number"`
+		Location  amapString `json:"location"`
+		Direction amapString `json:"direction"`
+		Distance  amapString `json:"distance"`
 	} `json:"streetNumber"`
 }
 
