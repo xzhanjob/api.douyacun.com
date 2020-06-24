@@ -1,2 +1,2 @@
 main:
-	go build -a -o douyacun main.go
+	go build -ldflags "-s -w" -a -o douyacun main.go
