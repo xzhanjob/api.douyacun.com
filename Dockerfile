@@ -3,9 +3,12 @@ FROM golang:alpine as builder
 WORKDIR /build
 ENV GOPROXY=https://goproxy.cn
 COPY . .
-RUN go mod download && go build -ldflags "-s -w" -a -o douyacun main.go
+RUN go mod download; \
+    go build -ldflags "-s -w" -o douyacun main.go
 
 ### 运行
-FROM Alpine as runner
+FROM alpine as runner
 COPY --from=builder /build/douyacun /app
+VOLUME /data
+EXPOSE 9003
 CMD douyacun start --env prod

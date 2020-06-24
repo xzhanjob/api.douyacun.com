@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-func Server(env string) {
+func Server() {
 	var (
 		engine *gin.Engine
 		err    error
@@ -31,7 +31,7 @@ func Server(env string) {
 	// 数据库
 	db.NewElasticsearch(config.GetKey("elasticsearch::address").Strings(","), config.GetKey("elasticsearch::user").String(), config.GetKey("elasticsearch::password").String())
 	// 启动gin
-	switch env {
+	switch config.GetKey("global::env").String() {
 	case "prod":
 		engine = gin.New()
 		engine.Use(recoverWithWrite(config.GetLogFD()))

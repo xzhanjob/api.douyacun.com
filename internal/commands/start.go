@@ -12,8 +12,8 @@ var Start = cli.Command{
 	Action: startAction,
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:     "env",
-			Usage:    "-env [debug, prod]",
+			Name:     "conf",
+			Usage:    "-conf <path>",
 			Required: true,
 		},
 	},
@@ -21,9 +21,9 @@ var Start = cli.Command{
 
 func startAction(c *cli.Context) (err error) {
 	// 加载配置文件
-	config.Init(c.String("env"))
+	config.Init(c.String("conf"))
 	// 启动web服务
-	initialize.Server(c.String("env"))
+	initialize.Server()
 
 	return nil
 }
