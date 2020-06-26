@@ -15,7 +15,6 @@ func Run(dir string) {
 	if err != nil {
 		logger.Fatalf("加载配置文件: %s", err)
 	}
-	//var tmpIndices = consts.IndicesArticleCost + "_" + time.Now().Format("20060102150405")
 	if err = Indices.Article.Delete(consts.IndicesArticleCost); err != nil {
 		logger.Error(err)
 	}
