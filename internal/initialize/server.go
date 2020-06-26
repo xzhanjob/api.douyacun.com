@@ -33,6 +33,7 @@ func Server() {
 	// 启动gin
 	switch config.GetKey("global::env").String() {
 	case "prod":
+		gin.SetMode(gin.ReleaseMode)
 		engine = gin.New()
 		engine.Use(recoverWithWrite(config.GetLogFD()))
 	default:

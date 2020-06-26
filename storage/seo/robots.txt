@@ -1,3 +1,0 @@
-User-agent:*
-Disallow: https://www.douyacun.com/chat
-Sitemap: https://www.douyacun.com/sitemap.xml

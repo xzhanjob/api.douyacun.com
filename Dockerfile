@@ -8,7 +8,8 @@ RUN go mod download; \
 
 ### 运行
 FROM alpine as runner
+WORKDIR /app
 COPY --from=builder /build/douyacun /app
 VOLUME /data
 EXPOSE 9003
-CMD douyacun start --env prod
+ENTRYPOINT ["./douyacun", "start"]
