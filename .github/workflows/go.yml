@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1 # 将仓库内容拷贝到Ubuntu系统的虚拟环境
       - name: Build the Docker image # 步骤名字
-        run:
+        run: |
           echo ${{ secrets.DOCKER_USER_ALI }} | docker login --username=${{ secrets.DOCKER_PASSWORD_ALI }} registry.cn-hangzhou.aliyuncs.com --password-stdin
           docker build -t registry.cn-hangzhou.aliyuncs.com/douyacun/api:latest . # 执行构建
           docker push registry.cn-hangzhou.aliyuncs.com/douyacun/api:latest
