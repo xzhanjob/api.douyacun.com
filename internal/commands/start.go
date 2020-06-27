@@ -14,6 +14,7 @@ var Start = cli.Command{
 		cli.StringFlag{
 			Name:     "conf",
 			Usage:    "-conf <path>",
+			EnvVar:   "_DOUYACUN_CONF",
 			Required: false,
 			Value:    "/data/web/api.douyacun.com/configs/prod.ini",
 		},
