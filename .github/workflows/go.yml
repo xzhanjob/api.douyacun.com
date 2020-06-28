@@ -14,3 +14,10 @@ jobs:
           echo ${{ secrets.DOCKER_PASSWORD_ALI }} | docker login --username=${{ secrets.DOCKER_USER_ALI }} registry.cn-hangzhou.aliyuncs.com --password-stdin
           docker build -t registry.cn-hangzhou.aliyuncs.com/douyacun/api:latest . # 执行构建
           docker push registry.cn-hangzhou.aliyuncs.com/douyacun/api:latest
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Docker compose pull image
+        run: sudo docker-compose -f /data/docker-compose.yml pull
+      - name: Docker compose recreate container
+        run: sudo docker-compose -f /data/docker-compose.yml up --force-recreate
