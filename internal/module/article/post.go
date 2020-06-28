@@ -50,7 +50,6 @@ func (*_post) List(ctx *gin.Context, page int) (int64, []interface{}, error) {
 		data  = make([]interface{}, 0, PageSize)
 		total int64
 		buf   bytes.Buffer
-		err   error
 	)
 	query := map[string]interface{}{
 		"from": skip,
@@ -62,17 +61,17 @@ func (*_post) List(ctx *gin.Context, page int) (int64, []interface{}, error) {
 		},
 		"_source": []string{"author", "title", "description", "topic", "id", "cover", "date", "last_edit_time"},
 	}
-	if err = json.NewEncoder(&buf).Encode(query); err != nil {
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
 		panic(errors.Wrap(err, "json encode 错误"))
 	}
 	res, err := db.ES.Search(
 		db.ES.Search.WithIndex(consts.IndicesArticleCost),
 		db.ES.Search.WithBody(&buf),
 	)
-	defer res.Body.Close()
 	if err != nil {
 		return 0, nil, err
 	}
+	defer res.Body.Close()
 	if res.IsError() {
 		resp, _ := ioutil.ReadAll(res.Body)
 		panic(errors.New(string(resp)))

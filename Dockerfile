@@ -10,6 +10,7 @@ RUN go mod download; \
 FROM alpine as runner
 WORKDIR /app
 COPY --from=builder /build/douyacun /app
+RUN apk add --no-cache bash
 VOLUME /data
 EXPOSE 9003
 ENTRYPOINT ["./douyacun", "start"]
