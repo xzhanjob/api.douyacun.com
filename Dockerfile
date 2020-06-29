@@ -1,7 +1,6 @@
 ### 构建
 FROM golang:alpine as builder
 WORKDIR /build
-ENV GOPROXY=https://goproxy.cn
 COPY . .
 RUN go mod download
 RUN go build -ldflags "-s -w" -o douyacun main.go
