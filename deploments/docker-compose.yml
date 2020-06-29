@@ -1,0 +1,16 @@
+version: "3"
+
+services:
+  api:
+    image: registry.cn-hangzhou.aliyuncs.com/douyacun/api:latest
+    ports:
+      - "9003:9003"
+    volumes:
+      - douyacun:/data
+
+volumes:
+  douyacun:
+    driver_opts:
+      o: bind
+      device: /data
+      type: none

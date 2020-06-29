@@ -12,18 +12,20 @@ var Start = cli.Command{
 	Action: startAction,
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:     "env",
-			Usage:    "-env [debug, prod]",
-			Required: true,
+			Name:     "conf",
+			Usage:    "-conf <path>",
+			EnvVar:   "_DOUYACUN_CONF",
+			Required: false,
+			Value:    "/data/web/api.douyacun.com/configs/prod.ini",
 		},
 	},
 }
 
 func startAction(c *cli.Context) (err error) {
 	// 加载配置文件
-	config.Init(c.String("env"))
+	config.Init(c.String("conf"))
 	// 启动web服务
-	initialize.Server(c.String("env"))
+	initialize.Server()
 
 	return nil
 }
