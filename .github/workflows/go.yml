@@ -22,3 +22,5 @@ jobs:
         run: sudo docker-compose -f /data/docker-compose.yml pull
       - name: Docker compose recreate container
         run: sudo docker-compose -f /data/docker-compose.yml up --force-recreate -d
+      - name: Docker image prune
+        run: echo y|sudo docker image prune -a
