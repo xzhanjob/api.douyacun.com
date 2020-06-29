@@ -14,17 +14,11 @@ jobs:
           echo ${{ secrets.DOCKER_PASSWORD_ALI }} | docker login --username=${{ secrets.DOCKER_USER_ALI }} registry.cn-hangzhou.aliyuncs.com --password-stdin
           docker build -t registry.cn-hangzhou.aliyuncs.com/douyacun/api:latest . # 执行构建
           docker push registry.cn-hangzhou.aliyuncs.com/douyacun/api:latest
-      - name: Deploy to Docker Compose
-        uses: wshihadeh/docker-deployment-action@v1
-        with:
-          remote_docker_host: www@myswarm.com
-          ssh_private_key: ${{ secrets.DOCKER_SSH_PRIVATE_KEY }}
-          ssh_public_key: ${{ secrets.DOCKER_SSH_PUBLIC_KEY }}
-          deployment_mode: docker-swarm
-          copy_stack_file: true
-          deploy_path: /root/my-deployment
-          stack_file_name: docker-compose.yaml
-          keep_files: 5
-          args: my_applicaion
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    needs: build
+    steps:
+      - name: Docker compose pull image
+        run: sudo docker-compose -f /data/docker-compose.yml pull
+      - name: Docker compose recreate container
+        run: sudo docker-compose -f /data/docker-compose.yml up --force-recreate -d
