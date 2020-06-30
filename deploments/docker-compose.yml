@@ -6,11 +6,4 @@ services:
     ports:
       - "9001:9003"
     volumes:
-      - douyacun:/data
-
-volumes:
-  douyacun:
-    driver_opts:
-      o: bind
-      device: /data
-      type: none
+      - /data:/data
