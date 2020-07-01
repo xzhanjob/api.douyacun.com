@@ -5,3 +5,4 @@ bin/
 storage/douyacun.pid
 /configs/douyacun.yml
 douyacun
+/configs/prod.ini
