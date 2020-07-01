@@ -18,8 +18,8 @@ jobs:
     needs: build
     steps:
       - name: Docker compose pull image
-        run: sudo docker-compose -f ${{ secrets.root }}/docker-compose.yml pull
+        run: sudo docker-compose -f ${{ secrets.root }}/api-compose.yml pull
       - name: Docker compose recreate container
-        run: sudo docker-compose -f ${{ secrets.root }}/deployments/docker-compose.yml up --force-recreate -d
+        run: sudo docker-compose -f ${{ secrets.root }}/deployments/api-compose.yml up --force-recreate -d
       - name: Docker image prune
         run: echo y|sudo docker image prune -a
