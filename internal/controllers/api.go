@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	"dyc/internal/config"
 	"dyc/internal/middleware"
 	"dyc/internal/module/chat"
 	"dyc/internal/module/util"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"path"
 )
 
 func Init(engine *gin.Engine) {
@@ -15,6 +17,7 @@ func Init(engine *gin.Engine) {
 func NewRouter(router *gin.Engine) {
 	hub := chat.NewHub()
 	go hub.Run()
+	storageDir := config.GetKey("path::storage_dir").String()
 	api := router.Group("/api")
 	{
 		// 文章
@@ -62,5 +65,8 @@ func NewRouter(router *gin.Engine) {
 		c.String(http.StatusOK, "OK")
 	})
 	// 静态文件
-	api.Static("/images", "")
+	router.Static("/images", path.Join(storageDir, "images"))
+	router.Static("/sitemap.xml", path.Join(storageDir, "seo"))
+	router.Static("/robots.txt", storageDir)
+	router.Static("/logo.png", storageDir)
 }

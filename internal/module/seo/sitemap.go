@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/douyacun/gositemap"
 	"github.com/gin-gonic/gin"
+	"path"
 )
 
 var Sitemap sitemap
@@ -22,7 +23,7 @@ func (s *sitemap) Generate(ctx *gin.Context) error {
 	st.SetPretty(true)
 	st.SetCompress(false)
 	st.SetDefaultHost("https://www.douyacun.com")
-	st.SetPublicPath(config.GetKey("path::seo_dir").String())
+	st.SetPublicPath(path.Join(config.GetKey("path::storage_dir").String(), "seo"))
 	host := "https://www.douyacun.com/article/%s"
 
 	url := gositemap.NewUrl()
