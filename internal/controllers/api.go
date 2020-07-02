@@ -61,4 +61,6 @@ func NewRouter(router *gin.Engine) {
 	router.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
 	})
+	// 静态文件
+	api.Static("/images", "")
 }

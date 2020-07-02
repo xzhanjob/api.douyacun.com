@@ -98,7 +98,7 @@ func (a *Article) UploadImage(bookDir string, topic string) (err error) {
 	// 图片前缀
 	imagePrefix := path.Join("/images/blog", a.Key, topic)
 	// 图片服务存储目录, 去掉images，方便后面直接拼接images
-	storageDir := path.Dir(path.Dir(config.GetKey("path::image_dir").String()))
+	storageDir := config.GetKey("path::storage_dir").String()
 	var errTemplate = func(s string) error {
 		return fmt.Errorf("《%s》: %s", a.Title, s)
 	}

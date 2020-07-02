@@ -56,7 +56,7 @@ func Run(dir string) {
 	}
 	wg.Wait()
 	// 生成webp图片
-	if err := helper.Image.Convert(path.Join(config.GetKey("path::image_dir").String(), conf.Key)); err != nil {
+	if err := helper.Image.Convert(path.Join(config.GetKey("path::storage_dir").String(), "images/blog", conf.Key)); err != nil {
 		logger.Error(err)
 	}
 }
