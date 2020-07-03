@@ -66,8 +66,8 @@ func NewRouter(router *gin.Engine) {
 	})
 	// 静态文件
 	router.Static("/images", path.Join(storageDir, "images"))
-	router.Static("/sitemap.xml", path.Join(storageDir, "seo"))
-	router.Static("/robots.txt", storageDir)
-	router.Static("/logo.png", storageDir)
+	router.StaticFile("/sitemap.xml", path.Join(storageDir, "seo"))
+	router.StaticFile("/robots.txt", storageDir)
+	router.StaticFile("/logo.png", storageDir)
 	router.Static("/ext_dict", path.Join(storageDir, "ext_dict"))
 }
