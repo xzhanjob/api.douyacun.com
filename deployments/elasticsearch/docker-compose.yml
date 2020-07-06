@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+
+  elasticsearch:
+    image: elasticsearch:7.5.0
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    environment:
+      - "discovery.type=single-node"
+      - "node.name=es"
+      - "cluster.name=es-cluster"
+      - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
+    ports:
+      - 9200:9200
+    volumes:
+      - /data/elasticsearch/data:/usr/share/elasticsearch/data
+      - /data/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
