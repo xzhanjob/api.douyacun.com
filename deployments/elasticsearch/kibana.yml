@@ -1,0 +1,4 @@
+elasticsearch.username: "elastic"
+elasticsearch.password: "password"
+elasticsearch.hosts:
+  - http://elasticsearch:9200

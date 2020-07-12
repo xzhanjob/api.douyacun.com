@@ -101,3 +101,10 @@ if helper.Image.WebPSupportExt(ext) {
         - [ ] 语言
         - [ ] 操作系统
     - [ ] source
+- [ ] 公开API
+    - [ ] 天气api
+    - [ ] ip所属城市api
+- [ ] 组件
+    - [ ] 天气react组件开发-腾讯天气
+    - [ ] 博客组件开发
+- [ ] SEO优化

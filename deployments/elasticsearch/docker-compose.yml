@@ -1,22 +1,30 @@
-version: "3.8"
+version: "3.3"
+
+networks:
+  es-net:
+    driver: bridge
 
 services:
 
   elasticsearch:
-    image: elasticsearch:7.5.0
+    image: registry.cn-hangzhou.aliyuncs.com/douyacun/elasticsearch:latest
+    container_name: elasticsearch
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      test: ["CMD", "curl", "-f", "http://elasticsearch:9200"]
       interval: 5s
       timeout: 5s
       retries: 5
     environment:
-      - "discovery.type=single-node"
-      - "node.name=es"
-      - "cluster.name=es-cluster"
       - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     ports:
       - 9200:9200
+    networks:
+      - es-net
     volumes:
       - /data/elasticsearch/data:/usr/share/elasticsearch/data
       - /data/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
