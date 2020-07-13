@@ -79,7 +79,7 @@ const (
         }
     }
 }`
-	IndicesArticleCost = "articles_debug"
+	IndicesArticleCost = "articles"
 	MarkDownImageRegex = `!\[(.*)\]\((.*)(.png|.gif|.jpg|.jpeg|.webp)(.*)\)`
 	MarkDownLocalJump  = `\[.*\]\((\.?\/?(\w+\/?)+\.md)(.*)\)`
 )
